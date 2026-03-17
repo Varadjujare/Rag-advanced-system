@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Document Chat Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+    <!-- Aurora canvas background -->
+    <canvas id="aurora-canvas"></canvas>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle" id="theme-toggle">
+        <i data-feather="moon"></i>
+    </div>
+
+    <!-- ═══ HOME VIEW ═══ -->
+    <main id="home-view" class="view active">
+
+        <nav class="home-nav">
+            <div class="logo">
+                <div class="logo-mark">
+                    <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+                        <path d="M11 1L20 6V16L11 21L2 16V6L11 1Z" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                        <path d="M11 7L15 9.5V14.5L11 17L7 14.5V9.5L11 7Z" fill="currentColor" opacity="0.6"/>
+                    </svg>
+                </div>
+                <span class="logo-text">NeuralDoc</span>
+            </div>
+            <div class="nav-pill">Beta v2.1</div>
+        </nav>
+
+        <section class="home-hero">
+            <div class="hero-eyebrow">
+                <span class="eyebrow-dot"></span>
+                Next Generation Analysis
+                <span class="eyebrow-line"></span>
+            </div>
+            <h1>Document <span class="text-gradient">Intelligence</span></h1>
+            <p>Upload your files and let AI extract insights, perform calculations, and summarize complex data in seconds.</p>
+            <div class="hero-stats">
+                <div class="stat"><span class="stat-num">99.8%</span><span class="stat-label">Accuracy</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat"><span class="stat-num">&lt; 2s</span><span class="stat-label">Response</span></div>
+                <div class="stat-divider"></div>
+                <div class="stat"><span class="stat-num">50MB</span><span class="stat-label">Max File</span></div>
+            </div>
+        </section>
+
+        <div class="feature-grid">
+            <div class="feature-card" id="btn-pdf-mode">
+                <div class="card-glow card-glow--blue"></div>
+                <div class="card-inner">
+                    <div class="card-icon-wrap">
+                        <div class="card-icon-bg"></div>
+                        <div class="card-icon"><i data-feather="file-text"></i></div>
+                    </div>
+                    <div class="card-badge">Most Popular</div>
+                    <h3>PDF Reader</h3>
+                    <p>Chat with PDFs, extract citations, and summarize long papers.</p>
+                    <ul class="card-features">
+                        <li><i data-feather="check-circle"></i> Semantic search</li>
+                        <li><i data-feather="check-circle"></i> Citation extraction</li>
+                        <li><i data-feather="check-circle"></i> Multi-page support</li>
+                    </ul>
+                    <div class="card-cta">
+                        <span>Start Chatting</span>
+                        <i data-feather="arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-card feature-card--violet" id="btn-csv-mode">
+                <div class="card-glow card-glow--violet"></div>
+                <div class="card-inner">
+                    <div class="card-icon-wrap">
+                        <div class="card-icon-bg card-icon-bg--violet"></div>
+                        <div class="card-icon card-icon--violet"><i data-feather="bar-chart-2"></i></div>
+                    </div>
+                    <div class="card-badge card-badge--violet">Analytical</div>
+                    <h3>Data Interrogator</h3>
+                    <p>Upload CSV/Excel files and ask complex analytical questions.</p>
+                    <ul class="card-features card-features--violet">
+                        <li><i data-feather="check-circle"></i> Trend analysis</li>
+                        <li><i data-feather="check-circle"></i> Auto calculations</li>
+                        <li><i data-feather="check-circle"></i> CSV &amp; XLSX support</li>
+                    </ul>
+                    <div class="card-cta card-cta--violet">
+                        <span>Analyse Data</span>
+                        <i data-feather="arrow-right"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ═══ PDF UPLOAD VIEW ═══ -->
+    <main id="upload-view-pdf" class="view hidden">
+        <div class="upload-shell">
+            <div class="back-link" id="back-from-pdf">
+                <i data-feather="arrow-left"></i> Back
+            </div>
+            <div class="upload-header">
+                <div class="upload-icon-ring">
+                    <i data-feather="file-text"></i>
+                </div>
+                <h1>Intelligent PDF Chat</h1>
+                <p>Upload your PDF and instantly chat with its contents using Gemini AI and Endee Cloud.</p>
+            </div>
+
+            <div id="drop-zone-pdf" class="drop-zone">
+                <div class="dz-bg-pattern"></div>
+                <div class="dz-content">
+                    <div class="dz-icon-wrap">
+                        <i data-feather="upload-cloud" class="dz-icon"></i>
+                    </div>
+                    <h3>Drag &amp; Drop your PDF here</h3>
+                    <p>or <span class="dz-link">click to browse</span></p>
+                    <div class="dz-formats">
+                        <span class="fmt-tag">PDF</span>
+                        <span class="fmt-tag fmt-tag--dim">Up to 50MB</span>
+                    </div>
+                </div>
+                <input type="file" id="file-input-pdf" accept="application/pdf" hidden>
+            </div>
+
+            <div id="uploading-state-pdf" class="upload-progress hidden">
+                <div class="progress-ring">
+                    <svg viewBox="0 0 80 80">
+                        <circle class="pr-track" cx="40" cy="40" r="32"/>
+                        <circle class="pr-fill" cx="40" cy="40" r="32"/>
+                    </svg>
+                    <i data-feather="file-text" class="pr-icon"></i>
+                </div>
+                <h4>Analyzing PDF...</h4>
+                <p class="subtitle">Extracting text, chunking, and embedding to Endee Cloud.</p>
+                <div class="prog-steps">
+                    <div class="prog-step active" id="step1"><span>Parsing</span></div>
+                    <div class="prog-connector"></div>
+                    <div class="prog-step" id="step2"><span>Chunking</span></div>
+                    <div class="prog-connector"></div>
+                    <div class="prog-step" id="step3"><span>Indexing</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ═══ CSV UPLOAD VIEW ═══ -->
+    <main id="upload-view-csv" class="view hidden">
+        <div class="upload-shell">
+            <div class="back-link" id="back-from-csv">
+                <i data-feather="arrow-left"></i> Back
+            </div>
+            <div class="upload-header">
+                <div class="upload-icon-ring upload-icon-ring--violet">
+                    <i data-feather="bar-chart-2"></i>
+                </div>
+                <h1>CSV Data Analyst</h1>
+                <p>Upload a spreadsheet and ask Gemini to perform analysis, sums, or trends.</p>
+            </div>
+
+            <div id="drop-zone-csv" class="drop-zone drop-zone--violet">
+                <div class="dz-bg-pattern"></div>
+                <div class="dz-content">
+                    <div class="dz-icon-wrap dz-icon-wrap--violet">
+                        <i data-feather="table" class="dz-icon"></i>
+                    </div>
+                    <h3>Drag &amp; Drop CSV/Excel here</h3>
+                    <p>or <span class="dz-link dz-link--violet">click to browse</span></p>
+                    <div class="dz-formats">
+                        <span class="fmt-tag fmt-tag--violet">CSV</span>
+                        <span class="fmt-tag fmt-tag--violet">XLSX</span>
+                        <span class="fmt-tag fmt-tag--dim">Up to 50MB</span>
+                    </div>
+                </div>
+                <input type="file" id="file-input-csv" accept=".csv, .xlsx" hidden>
+            </div>
+
+            <div id="uploading-state-csv" class="upload-progress hidden">
+                <div class="progress-ring progress-ring--violet">
+                    <svg viewBox="0 0 80 80">
+                        <circle class="pr-track" cx="40" cy="40" r="32"/>
+                        <circle class="pr-fill pr-fill--violet" cx="40" cy="40" r="32"/>
+                    </svg>
+                    <i data-feather="bar-chart-2" class="pr-icon pr-icon--violet"></i>
+                </div>
+                <h4>Parsing Spreadsheet...</h4>
+                <p class="subtitle">Reading rows and preparing data for Gemini Analysis.</p>
+                <div class="prog-steps">
+                    <div class="prog-step active" id="step-csv-1"><span>Reading</span></div>
+                    <div class="prog-connector"></div>
+                    <div class="prog-step" id="step-csv-2"><span>Parsing</span></div>
+                    <div class="prog-connector"></div>
+                    <div class="prog-step" id="step-csv-3"><span>Ready</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ═══ CHAT VIEW ═══ -->
+    <main id="chat-view" class="view hidden">
+        <div class="glass-container chat-container">
+
+            <header class="chat-header">
+                <button id="back-to-home" class="back-btn">
+                    <i data-feather="arrow-left"></i>
+                    <span>Back</span>
+                </button>
+                <div class="header-title">
+                    <i data-feather="message-square"></i>
+                    <h2>Document Assistant</h2>
+                </div>
+                <div class="header-status">
+                    <span class="status-dot"></span>
+                    <span>Ready</span>
+                </div>
+            </header>
+
+            <div id="chat-history" class="chat-history">
+                <div class="message ai-message">
+                    <div class="avatar"><i data-feather="cpu"></i></div>
+                    <div class="message-content">Hello! Your document is indexed and ready. What questions do you have about it?</div>
+                </div>
+            </div>
+
+
+
+            <div class="chat-input-area">
+                <form id="chat-form">
+                    <input type="text" id="chat-input" placeholder="Ask anything about the data..." autocomplete="off" required>
+                    <button type="submit" id="send-button">
+                        <i data-feather="send"></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>feather.replace();</script>
+</body>
+</html>
