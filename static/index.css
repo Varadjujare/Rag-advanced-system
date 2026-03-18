@@ -1087,3 +1087,45 @@ button, input { font-family: inherit; border: none; outline: none; background: n
     .chat-history { padding: 1rem; }
     .chat-input-area { padding: 0.75rem 1rem; }
 }
+/* Beautiful Footer */
+.footer-wrap {
+    width: 100%;
+    padding: 2rem 0;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    margin-top: 2rem;
+    position: relative;
+    clear: both;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+    pointer-events: none;
+}
+
+/* Show state triggered by JS */
+.footer-wrap.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+[data-theme="light"] .footer-wrap {
+    border-top-color: rgba(0, 0, 0, 0.05);
+}
+
+.footer-text {
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    color: rgba(255, 255, 255, 0.35);
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: all 0.4s ease;
+    display: inline-block;
+    cursor: default;
+}
+
+.footer-text:hover {
+    color: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05) translateY(-2px);
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+}

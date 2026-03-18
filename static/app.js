@@ -371,5 +371,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to fetch recommendations', err);
         }
     }
+    // ---- Footer Visibility Logic ----
+    const homeLayout = document.querySelector('.home-layout');
+    const footer     = document.querySelector('.footer-wrap');
+    
+    if (homeLayout && footer) {
+        homeLayout.addEventListener('scroll', () => {
+            const scrollTop    = homeLayout.scrollTop;
+            const scrollHeight = homeLayout.scrollHeight;
+            const clientHeight = homeLayout.clientHeight;
+            
+            // Show footer only when near the bottom (within 100px)
+            // and NOT at the very top (hero section)
+            if (scrollTop > 100 && (scrollTop + clientHeight >= scrollHeight - 120)) {
+                footer.classList.add('show');
+            } else {
+                footer.classList.remove('show');
+            }
+        });
+    }
 
 });
