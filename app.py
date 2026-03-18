@@ -6,6 +6,12 @@ import csv_engine
 import url_engine
 
 app = Flask(__name__)
+app.secret_key = "supersecretkey"
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "ok"}), 200
+
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB max upload
 
