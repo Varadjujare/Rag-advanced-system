@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════
    NeuralDoc — app.js  (Terminal Noir)
-   All original Flask logic preserved
+   All original Flask logic preserved + new footer
 ═══════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentMode     = 'pdf';
     let currentFilename = '';
 
-    // ---- Theme ----
+    // ── THEME ─────────────────────────────────────────
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
@@ -50,9 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const next = cur === 'light' ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', next);
         localStorage.setItem('theme', next);
+        // Re-run feather so SVG stroke colours inherit the new CSS variables
+        if (window.feather) feather.replace();
     });
 
-    // ---- Back from chat ----
+    // ── BACK FROM CHAT ────────────────────────────────
     backBtn.addEventListener('click', () => {
         switchView(chatView, homeView);
         currentFilename = null;
@@ -60,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('recommendations-container').classList.add('hidden');
     });
 
-    // ---- View Switching ----
+    // ── VIEW SWITCHING ────────────────────────────────
     function switchView(from, to) {
         from.classList.remove('active');
         setTimeout(() => {
@@ -70,26 +72,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 400);
     }
 
-    btnPdfMode.addEventListener('click', () => {
-        currentMode = 'pdf';
-        switchView(homeView, pdfUploadView);
-    });
-
-    btnCsvMode.addEventListener('click', () => {
-        currentMode = 'csv';
-        switchView(homeView, csvUploadView);
-    });
-
-    btnUrlMode.addEventListener('click', () => {
-        currentMode = 'url';
-        switchView(homeView, urlUploadView);
-    });
+    btnPdfMode.addEventListener('click', () => { currentMode = 'pdf'; switchView(homeView, pdfUploadView); });
+    btnCsvMode.addEventListener('click', () => { currentMode = 'csv'; switchView(homeView, csvUploadView); });
+    btnUrlMode.addEventListener('click', () => { currentMode = 'url'; switchView(homeView, urlUploadView); });
 
     backFromPdf.addEventListener('click', () => switchView(pdfUploadView, homeView));
     backFromCsv.addEventListener('click', () => switchView(csvUploadView, homeView));
     backFromUrl.addEventListener('click', () => switchView(urlUploadView, homeView));
 
-    // ---- URL Form Handler ----
+    // ── URL FORM ──────────────────────────────────────
     const urlForm          = document.getElementById('url-form');
     const urlInput         = document.getElementById('url-input');
     const uplodingStateUrl = document.getElementById('uploading-state-url');
@@ -117,7 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (res.ok) {
-                currentFilename = data.filename;   // stores the URL as key
+                currentFilename = data.filename;
                 currentMode     = 'url';
 
                 const topbarMode = document.getElementById('topbar-mode');
@@ -139,16 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ---- File Upload Handlers ----
-
-    // PDF
+    // ── FILE UPLOAD HANDLERS ──────────────────────────
     dropZonePdf.addEventListener('click', () => fileInputPdf.click());
     setupDragDrop(dropZonePdf, (file) => handleFileUpload(file, 'pdf'));
     fileInputPdf.addEventListener('change', (e) => {
         if (e.target.files.length) handleFileUpload(e.target.files[0], 'pdf');
     });
 
-    // CSV
     dropZoneCsv.addEventListener('click', () => fileInputCsv.click());
     setupDragDrop(dropZoneCsv, (file) => handleFileUpload(file, 'csv'));
     fileInputCsv.addEventListener('change', (e) => {
@@ -156,11 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function setupDragDrop(zone, callback) {
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            zone.classList.add('dragover');
-        });
-        zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+        zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+        zone.addEventListener('dragleave', ()  => zone.classList.remove('dragover'));
         zone.addEventListener('drop', (e) => {
             e.preventDefault();
             zone.classList.remove('dragover');
@@ -199,21 +184,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFilename = data.filename || file.name;
                 currentMode     = mode;
 
-                // Update topbar mode label
                 const topbarMode = document.getElementById('topbar-mode');
                 if (topbarMode) topbarMode.textContent = mode === 'pdf' ? 'PDF MODE' : 'CSV MODE';
 
-                // Transition to chat
                 switchView(currentView, chatView);
-
                 chatHistory.innerHTML = '';
+
                 const welcomeMsg = mode === 'pdf'
                     ? 'Hello! Your PDF is indexed. What would you like to know?'
-                    : `Hello! I\'ve analyzed your spreadsheet (${currentFilename}). You can ask me about sums, trends, or specific data points.`;
+                    : `Hello! I've analyzed your spreadsheet (${currentFilename}). You can ask me about sums, trends, or specific data points.`;
                 appendMessage('ai', welcomeMsg);
 
                 fetchRecommendations(currentFilename, mode);
-
                 setTimeout(() => chatInput.focus(), 600);
             } else {
                 throw new Error(data.error || 'Upload failed');
@@ -225,19 +207,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---- Step Animator ----
+    // ── STEP ANIMATOR ─────────────────────────────────
     function animateSteps(mode) {
         let pre;
         if (mode === 'pdf')      pre = 'step';
         else if (mode === 'csv') pre = 'step-csv-';
         else                     pre = 'step-url-';
-        const steps = [1, 2, 3];
-        steps.forEach((n, i) => {
+
+        [1, 2, 3].forEach((n, i) => {
             const el = document.getElementById(`${pre}${n}`);
             if (!el) return;
             setTimeout(() => {
                 if (i > 0) {
-                    const prev = document.getElementById(`${pre}${steps[i - 1]}`);
+                    const prev = document.getElementById(`${pre}${[1,2,3][i - 1]}`);
                     if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
                 }
                 el.classList.add('active');
@@ -245,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ---- Chat Logic ----
+    // ── CHAT LOGIC ────────────────────────────────────
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = chatInput.value.trim();
@@ -258,8 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingId = appendTypingIndicator();
 
         try {
-            const endpoint = currentMode === 'pdf'  ? '/api/chat'
-                           : currentMode === 'csv'  ? '/api/chat-csv'
+            const endpoint = currentMode === 'pdf' ? '/api/chat'
+                           : currentMode === 'csv' ? '/api/chat-csv'
                            : '/api/chat-url';
             const body     = currentMode === 'pdf'
                 ? { query: text }
@@ -273,12 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             removeElement(typingId);
-
-            if (res.ok) {
-                appendMessage('ai', data.answer);
-            } else {
-                appendMessage('ai', '⚠️ Error: ' + data.error);
-            }
+            appendMessage('ai', res.ok ? data.answer : '⚠️ Error: ' + data.error);
         } catch (err) {
             removeElement(typingId);
             appendMessage('ai', '⚠️ Network error communicating with the server.');
@@ -337,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.remove();
     }
 
-    // ---- Recommendations ----
+    // ── RECOMMENDATIONS ───────────────────────────────
     async function fetchRecommendations(filename, mode) {
         const container = document.getElementById('recommendations-container');
         const chipsArea = document.getElementById('chips-area');
@@ -371,42 +348,49 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to fetch recommendations', err);
         }
     }
-    // ---- Footer Navigation ----
+
+    // ── FOOTER NAV LINKS ──────────────────────────────
     const footPdf = document.getElementById('foot-pdf');
     const footCsv = document.getElementById('foot-csv');
     const footUrl = document.getElementById('foot-url');
 
-    if (footPdf) footPdf.addEventListener('click', () => {
-        currentMode = 'pdf';
-        switchView(homeView, pdfUploadView);
-    });
-    if (footCsv) footCsv.addEventListener('click', () => {
-        currentMode = 'csv';
-        switchView(homeView, csvUploadView);
-    });
-    if (footUrl) footUrl.addEventListener('click', () => {
-        currentMode = 'url';
-        switchView(homeView, urlUploadView);
-    });
+    if (footPdf) footPdf.addEventListener('click', () => { currentMode = 'pdf'; switchView(homeView, pdfUploadView); });
+    if (footCsv) footCsv.addEventListener('click', () => { currentMode = 'csv'; switchView(homeView, csvUploadView); });
+    if (footUrl) footUrl.addEventListener('click', () => { currentMode = 'url'; switchView(homeView, urlUploadView); });
 
-    // ---- Footer Visibility Logic ----
+    // ── FOOTER VISIBILITY — IntersectionObserver ──────
+    // The footer lives inside .home-layout (scrollable).
+    // We observe the footer element itself: as soon as even
+    // 10% of it enters the viewport (i.e. user scrolled down
+    // enough to see the cards), we add .visible to trigger
+    // the fade-in CSS transition.
+    const siteFooter = document.querySelector('.site-footer');
     const homeLayout = document.querySelector('.home-layout');
-    const footer     = document.querySelector('.footer-wrap');
-    
-    if (homeLayout && footer) {
-        homeLayout.addEventListener('scroll', () => {
-            const scrollTop    = homeLayout.scrollTop;
-            const scrollHeight = homeLayout.scrollHeight;
-            const clientHeight = homeLayout.clientHeight;
-            
-            // Show footer only when near the bottom (within 100px)
-            // and NOT at the very top (hero section)
-            if (scrollTop > 100 && (scrollTop + clientHeight >= scrollHeight - 120)) {
-                footer.classList.add('show');
-            } else {
-                footer.classList.remove('show');
+
+    if (siteFooter && homeLayout) {
+        // IntersectionObserver root = the scrolling container
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        siteFooter.classList.add('visible');
+                    } else {
+                        // Optional: remove 'visible' when scrolled back up
+                        // so it re-animates on next scroll-down.
+                        siteFooter.classList.remove('visible');
+                    }
+                });
+            },
+            {
+                root: homeLayout,   // scroll container
+                threshold: 0.08     // trigger when 8% visible
             }
-        });
+        );
+
+        observer.observe(siteFooter);
     }
+
+    // ── INIT FEATHER ──────────────────────────────────
+    if (window.feather) feather.replace();
 
 });
