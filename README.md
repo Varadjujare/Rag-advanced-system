@@ -1,6 +1,6 @@
-# NeuralDoc — Multi-Modal AI Assistant
+# SmartDOC — Multi-Modal AI Assistant
 
-NeuralDoc is a powerful Retrieval-Augmented Generation (RAG) platform. It allows users to upload PDFs, analyze structured data (CSV/Excel), and scrape web pages to instantly extract insights, perform complex calculations, and summarize contents. It leverages **Google Gemini 2.5 Flash** for intelligence and **Endee Cloud Vector Database** for lightning-fast retrieval.
+SmartDOC is a powerful Retrieval-Augmented Generation (RAG) platform. It allows users to upload PDFs, analyze structured data (CSV/Excel), and scrape web pages to instantly extract insights, perform complex calculations, and summarize contents. It leverages **Google Gemini 2.5 Flash** for intelligence and **Endee Cloud Vector Database** for lightning-fast retrieval.
 
 ## ✨ Key Features
 - **PDF Document RAG**: Semantic search, smart chunking, and vector indexing using Endee Cloud for deep document interrogation. Includes citations and page numbers.
@@ -41,7 +41,7 @@ GEMINI_API_KEY=your_gemini_key
 # --- Endee Cloud (Vector Database)
 ENDEE_API_KEY=project_id:secret:region
 ENDEE_BASE_URL=https://dev.endee.io/api/v1
-ENDEE_COLLECTION=NeuralDoc_Storage
+ENDEE_COLLECTION=SmartDOC_Storage
 ```
 
 ### 3. Launch the Application
