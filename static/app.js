@@ -371,6 +371,24 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Failed to fetch recommendations', err);
         }
     }
+    // ---- Footer Navigation ----
+    const footPdf = document.getElementById('foot-pdf');
+    const footCsv = document.getElementById('foot-csv');
+    const footUrl = document.getElementById('foot-url');
+
+    if (footPdf) footPdf.addEventListener('click', () => {
+        currentMode = 'pdf';
+        switchView(homeView, pdfUploadView);
+    });
+    if (footCsv) footCsv.addEventListener('click', () => {
+        currentMode = 'csv';
+        switchView(homeView, csvUploadView);
+    });
+    if (footUrl) footUrl.addEventListener('click', () => {
+        currentMode = 'url';
+        switchView(homeView, urlUploadView);
+    });
+
     // ---- Footer Visibility Logic ----
     const homeLayout = document.querySelector('.home-layout');
     const footer     = document.querySelector('.footer-wrap');
