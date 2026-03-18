@@ -31,11 +31,18 @@ def upload_file():
         
         try:
             chunks = rag_engine.process_pdf(filepath)
+            
+            # Safe to auto-delete since Endee has the vector data
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
             return jsonify({
                 "message": "File uploaded and indexed successfully", 
                 "chunks_processed": chunks
             })
         except Exception as e:
+            if os.path.exists(filepath):
+                os.remove(filepath)
             return jsonify({"error": str(e)}), 500
     
     return jsonify({"error": "Invalid file format. Please upload a PDF."}), 400
