@@ -1,29 +1,30 @@
-# NeuralDoc — Intelligent Document Assistant
+# NeuralDoc — Multi-Modal AI Assistant
 
-NeuralDoc is a premium, next-generation Retrieval-Augmented Generation (RAG) platform. It allows users to upload PDFs and structured data (CSV/Excel) to instantly extract insights, perform complex calculations, and summarize contents using **Google Gemini AI** and the **Endee Cloud Vector Database**.
+NeuralDoc is a powerful Retrieval-Augmented Generation (RAG) platform. It allows users to upload PDFs, analyze structured data (CSV/Excel), and scrape web pages to instantly extract insights, perform complex calculations, and summarize contents. It leverages **Google Gemini 2.5 Flash** for intelligence and **Endee Cloud Vector Database** for lightning-fast retrieval.
 
-## ✨ Premium Features
-- **Neural UI/UX**: A luxury dark-themed interface featuring an animated Aurora background, Syne & DM Sans typography, and interactive 3D card tilt effects.
-- **Multi-Modal Analysis**:
-    - **PDF Reader**: Semantic search, chunking, and vector indexing for deep document interrogation.
-    - **Data Interrogator**: Analytical processing for CSV/XLSX files, enabling trend analysis and automated calculations.
-- **Endee Cloud Core**: Blazingly fast vector storage and similarity search.
-- **Gemini Intelligence**: Powered by `gemini-2.5-flash` for high-accuracy, context-aware responses with citations.
+## ✨ Key Features
+- **PDF Document RAG**: Semantic search, smart chunking, and vector indexing using Endee Cloud for deep document interrogation. Includes citations and page numbers.
+- **Data Interrogator (CSV/xlsx)**: Analytical processing for CSV/Excel files. Automatically suggests smart analytical questions and leverages Gemini to perform complex data analysis on tabular data.
+- **Web Scraping & Chat** *(New!)*: Instantly scrape any public URL, clean the HTML noise, and chat directly with the webpage content using an intelligent LLM context window.
+- **Modern Architecture**: Flask backend with modular engines (`rag_engine`, `csv_engine`, `url_engine`) ensuring clean separation of concerns.
 
 ---
 
 ## 🏗️ Technical Architecture
-- **Backend**: Flask (Python 3.9+)
-- **LLM**: Google Gemini (`langchain-google-genai`)
-- **Vector DB**: Endee Cloud (`endee`)
-- **Embeddings**: HuggingFace (`sentence-transformers`)
-- **Frontend**: Vanilla JS (ES6+), Modern CSS3 (Neural Aesthetics), Feather Icons.
+- **Backend Framework**: Flask (Python 3.9+)
+- **Large Language Model**: Google Gemini (`gemini-2.5-flash` via `langchain-google-genai`)
+- **Vector Database**: Endee Cloud (`endee`)
+- **Embeddings**: HuggingFace (`sentence-transformers/all-MiniLM-L6-v2`)
+- **Web Scraping**: `requests`, `BeautifulSoup4`
+- **Data Handling**: `pandas`
+- **Frontend**: HTML5, Vanilla JS, Modern CSS (UI available via `templates/` and `static/`)
 
 ---
 
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies
+Ensure you have Python installed.
 ```bash
 pip install -r requirement.txt
 ```
@@ -31,35 +32,41 @@ pip install -r requirement.txt
 ### 2. Configure Environment (`.env`)
 Create a `.env` file in the root directory:
 ```ini
-# --- HuggingFace (Local Embeddings)
-HUGGINGFACE_API_TOKEN=your_token
+# --- HuggingFace (Local Embeddings, token optional for open models)
+HUGGINGFACE_API_TOKEN=your_hf_token
 
 # --- Google Gemini
-GEMINI_API_KEY=your_key
+GEMINI_API_KEY=your_gemini_key
 
-# --- Endee Cloud
+# --- Endee Cloud (Vector Database)
 ENDEE_API_KEY=project_id:secret:region
 ENDEE_BASE_URL=https://dev.endee.io/api/v1
 ENDEE_COLLECTION=NeuralDoc_Storage
 ```
 
-### 3. Launch Platform
+### 3. Launch the Application
+Start the Flask web server:
 ```bash
 python app.py
 ```
 Access the dashboard at **[http://localhost:5000](http://localhost:5000)**.
 
----
-
-## 🛠️ Performance & Limits
-- **File Size**: Supports uploads up to 50MB.
-- **Lazy Loading**: AI models are loaded on-demand to ensure lightning-fast server startup.
-- **Auto-Formatting**: Integrated `marked.js` for professional Markdown rendering of AI responses.
+*(Note: You can also execute `python main.py` for a standalone CLI-based PDF chat experience tailored for testing the Endee integration.)*
 
 ---
 
-## 🛡️ Troubleshooting
-- **Logo/Icons Not Loading**: Ensure you have an active internet connection for Feather Icons CDN.
-- **PDF Analysis Hangs**: Large documents (100+ pages) may take 30-60 seconds for initial vector indexing.
-- **API Errors**: Verify your `ENDEE_API_KEY` format matches the `project:secret:region` pattern.
+## 📁 Repository Structure
+- `app.py`: Main Flask application handling routing and API endpoints.
+- `rag_engine.py`: Logic for PDF ingestion, chunking, and RAG querying.
+- `csv_engine.py`: Logic for parsing CSV/Excel data and generating insights.
+- `url_engine.py`: Pipeline for scraping web content and chatting with it.
+- `main.py`: A CLI script for indexing and retrieval testing outside the Flask environment.
+- `templates/` / `static/`: Frontend visual layout and JavaScript logic.
 
+---
+
+## 🛠️ System Limits & Performance
+- **Upload Size**: Supports files up to 50MB.
+- **Scraping Limits**: Web text is automatically truncated at ~12,000 words to respect Gemini context limits.
+- **Data Previews**: Tabular data queries are limited to the first 500 rows to ensure efficient LLM interactions without exceeding context caps.
+- **Lazy Initialization**: AI models (Embeddings and Chat Models) inside engines are instantiated lazily on the first request to minimize server startup times.

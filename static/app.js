@@ -1,89 +1,32 @@
 /* ═══════════════════════════════════════════════════
-   NeuralDoc — app.js
-   Original logic preserved · Aurora background added
+   NeuralDoc — app.js  (Terminal Noir)
+   All original Flask logic preserved
 ═══════════════════════════════════════════════════ */
 
-/* ── AURORA CANVAS (runs immediately) ────────────── */
-(function initAurora() {
-    const canvas = document.getElementById('aurora-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let W, H;
-
-    const blobs = [
-        { bx: 0.15, by: 0.25, r: 0.35, hue: 240, a: 0.18, ang: 0,   spd: 0.0003, drft: 0.06 },
-        { bx: 0.80, by: 0.15, r: 0.30, hue: 280, a: 0.14, ang: 1,   spd: 0.0004, drft: 0.05 },
-        { bx: 0.55, by: 0.75, r: 0.38, hue: 190, a: 0.12, ang: 2,   spd: 0.0003, drft: 0.07 },
-        { bx: 0.10, by: 0.80, r: 0.25, hue: 260, a: 0.10, ang: 3,   spd: 0.0005, drft: 0.04 },
-    ];
-
-    function resize() {
-        W = canvas.width  = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-    }
-
-    function loop() {
-        ctx.clearRect(0, 0, W, H);
-        blobs.forEach(b => {
-            b.ang += b.spd;
-            const cx = (b.bx + Math.sin(b.ang) * b.drft) * W;
-            const cy = (b.by + Math.cos(b.ang * 0.7) * b.drft) * H;
-            const r  = b.r * Math.min(W, H);
-            const g  = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            g.addColorStop(0, `hsla(${b.hue},80%,60%,${b.a})`);
-            g.addColorStop(1, `hsla(${b.hue},80%,60%,0)`);
-            ctx.beginPath();
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fillStyle = g;
-            ctx.fill();
-        });
-        requestAnimationFrame(loop);
-    }
-
-    window.addEventListener('resize', resize);
-    resize();
-    loop();
-})();
-
-
-/* ── CARD TILT (runs immediately) ────────────────── */
-document.querySelectorAll('.feature-card').forEach(card => {
-    card.addEventListener('mousemove', e => {
-        const rect = card.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width  - 0.5;
-        const y = (e.clientY - rect.top)  / rect.height - 0.5;
-        card.style.transform      = `translateY(-8px) scale(1.01) rotateX(${-y * 5}deg) rotateY(${x * 5}deg)`;
-        card.style.transformStyle = 'preserve-3d';
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform      = '';
-        card.style.transformStyle = '';
-    });
-});
-
-
-/* ── MAIN APP LOGIC ──────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
 
     // ---- Navigation Elements ----
-    const homeView     = document.getElementById('home-view');
+    const homeView      = document.getElementById('home-view');
     const pdfUploadView = document.getElementById('upload-view-pdf');
     const csvUploadView = document.getElementById('upload-view-csv');
-    const chatView     = document.getElementById('chat-view');
+    const urlUploadView = document.getElementById('upload-view-url');
+    const chatView      = document.getElementById('chat-view');
 
     const btnPdfMode  = document.getElementById('btn-pdf-mode');
     const btnCsvMode  = document.getElementById('btn-csv-mode');
+    const btnUrlMode  = document.getElementById('btn-url-mode');
     const backFromPdf = document.getElementById('back-from-pdf');
     const backFromCsv = document.getElementById('back-from-csv');
+    const backFromUrl = document.getElementById('back-from-url');
 
     // ---- PDF Elements ----
-    const dropZonePdf      = document.getElementById('drop-zone-pdf');
-    const fileInputPdf     = document.getElementById('file-input-pdf');
+    const dropZonePdf       = document.getElementById('drop-zone-pdf');
+    const fileInputPdf      = document.getElementById('file-input-pdf');
     const uploadingStatePdf = document.getElementById('uploading-state-pdf');
 
     // ---- CSV Elements ----
-    const dropZoneCsv      = document.getElementById('drop-zone-csv');
-    const fileInputCsv     = document.getElementById('file-input-csv');
+    const dropZoneCsv       = document.getElementById('drop-zone-csv');
+    const fileInputCsv      = document.getElementById('file-input-csv');
     const uploadingStateCsv = document.getElementById('uploading-state-csv');
 
     // ---- Chat Elements ----
@@ -94,33 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggle = document.getElementById('theme-toggle');
     const backBtn     = document.getElementById('back-to-home');
 
-    // ---- Navigation ----
+    // ---- App State ----
+    let currentMode     = 'pdf';
+    let currentFilename = '';
+
+    // ---- Theme ----
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const cur  = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    });
+
+    // ---- Back from chat ----
     backBtn.addEventListener('click', () => {
         switchView(chatView, homeView);
         currentFilename = null;
         chatHistory.innerHTML = '';
+        document.getElementById('recommendations-container').classList.add('hidden');
     });
 
-    // ---- Theme Persistence ----
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.body.setAttribute('data-theme', savedTheme);
-    themeToggle.innerHTML = `<i data-feather="${savedTheme === 'light' ? 'sun' : 'moon'}"></i>`;
-    feather.replace();
-
-    themeToggle.addEventListener('click', () => {
-        const currentTheme = document.body.getAttribute('data-theme');
-        const newTheme     = currentTheme === 'light' ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', newTheme);
-        localStorage.setItem('theme', newTheme);
-        themeToggle.innerHTML = `<i data-feather="${newTheme === 'light' ? 'sun' : 'moon'}"></i>`;
-        feather.replace();
-    });
-
-    // ---- App State ----
-    let currentMode     = 'pdf'; // 'pdf' or 'csv'
-    let currentFilename = '';
-
-    // ---- View Switching Logic ----
+    // ---- View Switching ----
     function switchView(from, to) {
         from.classList.remove('active');
         setTimeout(() => {
@@ -140,8 +80,64 @@ document.addEventListener('DOMContentLoaded', () => {
         switchView(homeView, csvUploadView);
     });
 
+    btnUrlMode.addEventListener('click', () => {
+        currentMode = 'url';
+        switchView(homeView, urlUploadView);
+    });
+
     backFromPdf.addEventListener('click', () => switchView(pdfUploadView, homeView));
     backFromCsv.addEventListener('click', () => switchView(csvUploadView, homeView));
+    backFromUrl.addEventListener('click', () => switchView(urlUploadView, homeView));
+
+    // ---- URL Form Handler ----
+    const urlForm          = document.getElementById('url-form');
+    const urlInput         = document.getElementById('url-input');
+    const uplodingStateUrl = document.getElementById('uploading-state-url');
+    const urlSubmitBtn     = document.getElementById('url-submit-btn');
+
+    urlForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        let rawUrl = urlInput.value.trim();
+        if (!rawUrl) return;
+        if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+            rawUrl = 'https://' + rawUrl;
+        }
+
+        urlSubmitBtn.disabled = true;
+        urlForm.closest('.url-input-box').classList.add('hidden');
+        uplodingStateUrl.classList.remove('hidden');
+        animateSteps('url');
+
+        try {
+            const res  = await fetch('/api/scrape-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: rawUrl })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                currentFilename = data.filename;   // stores the URL as key
+                currentMode     = 'url';
+
+                const topbarMode = document.getElementById('topbar-mode');
+                if (topbarMode) topbarMode.textContent = 'WEB MODE';
+
+                switchView(urlUploadView, chatView);
+                chatHistory.innerHTML = '';
+                appendMessage('ai', `Hello! I've read the page: **${data.title}** (${data.word_count.toLocaleString()} words). What would you like to know about it?`);
+                setTimeout(() => chatInput.focus(), 600);
+            } else {
+                throw new Error(data.error || 'Scraping failed');
+            }
+        } catch (err) {
+            alert(err.message);
+            uplodingStateUrl.classList.add('hidden');
+            urlForm.closest('.url-input-box').classList.remove('hidden');
+        } finally {
+            urlSubmitBtn.disabled = false;
+        }
+    });
 
     // ---- File Upload Handlers ----
 
@@ -182,13 +178,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const dropZone    = mode === 'pdf' ? dropZonePdf      : dropZoneCsv;
+        const dropZone    = mode === 'pdf' ? dropZonePdf       : dropZoneCsv;
         const uploadState = mode === 'pdf' ? uploadingStatePdf : uploadingStateCsv;
-        const currentView = mode === 'pdf' ? pdfUploadView     : csvUploadView;
+        const currentView = mode === 'pdf' ? pdfUploadView      : csvUploadView;
 
         dropZone.classList.add('hidden');
         uploadState.classList.remove('hidden');
-        animateUploadSteps(mode);
+        animateSteps(mode);
 
         const formData = new FormData();
         formData.append('document', file);
@@ -203,15 +199,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentFilename = data.filename || file.name;
                 currentMode     = mode;
 
-                // Transition to Chat View
+                // Update topbar mode label
+                const topbarMode = document.getElementById('topbar-mode');
+                if (topbarMode) topbarMode.textContent = mode === 'pdf' ? 'PDF MODE' : 'CSV MODE';
+
+                // Transition to chat
                 switchView(currentView, chatView);
 
-                // Reset initial chat message based on mode
                 chatHistory.innerHTML = '';
                 const welcomeMsg = mode === 'pdf'
-                    ? "Hello! Your PDF is indexed. What would you like to know?"
-                    : `Hello! I've analyzed your spreadsheet (${currentFilename}). You can ask me about sums, trends, or specific data points.`;
+                    ? 'Hello! Your PDF is indexed. What would you like to know?'
+                    : `Hello! I\'ve analyzed your spreadsheet (${currentFilename}). You can ask me about sums, trends, or specific data points.`;
                 appendMessage('ai', welcomeMsg);
+
+                fetchRecommendations(currentFilename, mode);
 
                 setTimeout(() => chatInput.focus(), 600);
             } else {
@@ -224,9 +225,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ---- Upload Step Animation ----
-    function animateUploadSteps(mode) {
-        const pre   = mode === 'pdf' ? 'step' : 'step-csv-';
+    // ---- Step Animator ----
+    function animateSteps(mode) {
+        let pre;
+        if (mode === 'pdf')      pre = 'step';
+        else if (mode === 'csv') pre = 'step-csv-';
+        else                     pre = 'step-url-';
         const steps = [1, 2, 3];
         steps.forEach((n, i) => {
             const el = document.getElementById(`${pre}${n}`);
@@ -254,7 +258,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const typingId = appendTypingIndicator();
 
         try {
-            const endpoint = currentMode === 'pdf' ? '/api/chat' : '/api/chat-csv';
+            const endpoint = currentMode === 'pdf'  ? '/api/chat'
+                           : currentMode === 'csv'  ? '/api/chat-csv'
+                           : '/api/chat-url';
             const body     = currentMode === 'pdf'
                 ? { query: text }
                 : { query: text, filename: currentFilename };
@@ -283,38 +289,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function appendMessage(role, text) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `message ${role}-message`;
-        const icon = role === 'user' ? 'user' : 'cpu';
-
-        msgDiv.innerHTML = `
-            <div class="avatar"><i data-feather="${icon}"></i></div>
-            <div class="message-content"></div>
-        `;
+        const wrap = document.createElement('div');
+        wrap.className = `message ${role}-message`;
 
         if (role === 'ai') {
-            msgDiv.querySelector('.message-content').innerHTML = marked.parse(text);
+            wrap.innerHTML = `
+                <div class="avatar"><i data-feather="cpu"></i></div>
+                <div class="msg-body">
+                    <div class="msg-label mono">SYSTEM</div>
+                    <div class="message-content"></div>
+                </div>`;
+            wrap.querySelector('.message-content').innerHTML = marked.parse(text);
         } else {
-            msgDiv.querySelector('.message-content').textContent = text;
+            wrap.innerHTML = `
+                <div class="avatar"><i data-feather="user"></i></div>
+                <div class="msg-body">
+                    <div class="msg-label mono">YOU</div>
+                    <div class="message-content"></div>
+                </div>`;
+            wrap.querySelector('.message-content').textContent = text;
         }
 
-        chatHistory.appendChild(msgDiv);
+        chatHistory.appendChild(wrap);
         feather.replace();
         chatHistory.scrollTop = chatHistory.scrollHeight;
     }
 
     function appendTypingIndicator() {
-        const id     = 'typing-' + Date.now();
-        const msgDiv = document.createElement('div');
-        msgDiv.className = 'message ai-message';
-        msgDiv.id = id;
-        msgDiv.innerHTML = `
+        const id   = 'typing-' + Date.now();
+        const wrap = document.createElement('div');
+        wrap.className = 'message ai-message';
+        wrap.id = id;
+        wrap.innerHTML = `
             <div class="avatar"><i data-feather="cpu"></i></div>
-            <div class="message-content typing">
-                <span></span><span></span><span></span>
-            </div>
-        `;
-        chatHistory.appendChild(msgDiv);
+            <div class="msg-body">
+                <div class="msg-label mono">SYSTEM</div>
+                <div class="typing"><span></span><span></span><span></span></div>
+            </div>`;
+        chatHistory.appendChild(wrap);
         feather.replace();
         chatHistory.scrollTop = chatHistory.scrollHeight;
         return id;
@@ -325,6 +337,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.remove();
     }
 
+    // ---- Recommendations ----
+    async function fetchRecommendations(filename, mode) {
+        const container = document.getElementById('recommendations-container');
+        const chipsArea = document.getElementById('chips-area');
+        chipsArea.innerHTML = '';
+        container.classList.add('hidden');
 
+        try {
+            const res  = await fetch('/api/recommendations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, mode })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.questions && data.questions.length > 0) {
+                container.classList.remove('hidden');
+                data.questions.forEach(q => {
+                    const chip = document.createElement('div');
+                    chip.className = 'suggestion-chip';
+                    chip.innerHTML = `<i data-feather="trending-up"></i><span>${q}</span>`;
+                    chip.addEventListener('click', () => {
+                        chatInput.value = q;
+                        chatForm.dispatchEvent(new Event('submit'));
+                        container.classList.add('hidden');
+                    });
+                    chipsArea.appendChild(chip);
+                });
+                feather.replace();
+            }
+        } catch (err) {
+            console.error('Failed to fetch recommendations', err);
+        }
+    }
 
 });
