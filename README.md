@@ -1,11 +1,11 @@
 # SmartDOC — Multi-Modal AI Assistant
 
-SmartDOC is a powerful Retrieval-Augmented Generation (RAG) platform. It allows users to upload PDFs, analyze structured data (CSV/Excel), and scrape web pages to instantly extract insights, perform complex calculations, and summarize contents. It leverages **Google Gemini 2.5 Flash** for intelligence and **Endee Cloud Vector Database** for lightning-fast retrieval.
+SmartDOC is a powerful AI Assistant platform. It seamlessly integrates a true Retrieval-Augmented Generation (RAG) system for PDFs and direct-context pipelines for structured data (CSV/Excel) and web pages. It leverages **Google Gemini 2.5 Flash** for intelligence and **Endee Cloud Vector Database** for lightning-fast semantic retrieval.
 
 ## ✨ Key Features
-- **PDF Document RAG**: Semantic search, smart chunking, and vector indexing using Endee Cloud for deep document interrogation. Includes citations and page numbers.
-- **Data Interrogator (CSV/xlsx)**: Analytical processing for CSV/Excel files. Automatically suggests smart analytical questions and leverages Gemini to perform complex data analysis on tabular data.
-- **Web Scraping & Chat** *(New!)*: Instantly scrape any public URL, clean the HTML noise, and chat directly with the webpage content using an intelligent LLM context window.
+- **PDF Document Service (True RAG)**: Full RAG implementation with semantic search, smart chunking, and vector indexing using Endee Cloud for deep document interrogation. Includes citations and page numbers.
+- **Data Interrogator (Direct Context window)**: Analytical processing for CSV/Excel files. Bypasses vector search and feeds tabular data directly to Gemini's large context window to perform complex data analysis and mathematical queries. 
+- **Web Scraping & Chat (Direct Context window)**: Instantly scrape any public URL, clean the HTML noise, and chat directly with the webpage content using Gemini's large text context capacity.
 - **Modern Architecture**: Flask backend with modular engines (`rag_engine`, `csv_engine`, `url_engine`) ensuring clean separation of concerns.
 
 ---
