@@ -78,10 +78,23 @@ def process_pdf(pdf_path: str):
                 
     print(f"Created {len(chunks_with_metadata)} chunks")
 
-    # Ensure index exists
+    # Ensure index exists with correct dimensions
     from endee.exceptions import ConflictException
     try:
-        # Changed dimension to 3072 to match Gemini output
+        index_info = client.get_index(name=COLLECTION)
+        # Endee doesn't expose dimension directly on the object sometimes, 
+        # so we can just rely on the API. But the safest way is to try creating,
+        # and if it exists but is wrong during upsert, we handle it later.
+        # However, we can proactively delete it if we know we changed models.
+        # Let's check info:
+        if hasattr(index_info, 'dimension') and index_info.dimension == 384:
+             print("Old index format found. Deleting and recreating...")
+             client.delete_index(name=COLLECTION)
+             client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
+    except Exception:
+        pass # Index probably doesn't exist yet
+
+    try:
         client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
     except ConflictException:
         pass # Already exists
@@ -114,7 +127,18 @@ def process_pdf(pdf_path: str):
             }
         })
 
-    index.upsert(vectors)
+    try:
+        index.upsert(vectors)
+    except Exception as e:
+        if "Expected shape" in str(e) or "384" in str(e):
+             print("Dimension mismatch detected during upsert. Recreating index...")
+             client.delete_index(name=COLLECTION)
+             client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
+             index = client.get_index(name=COLLECTION)
+             index.upsert(vectors)
+        else:
+             raise
+             
     print(f"{len(chunks_with_metadata)} chunks stored in Endee Cloud!")
     return len(chunks_with_metadata)
 
