@@ -10,7 +10,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.0-flash")
 
 def process_csv(filepath: str) -> dict:
     """Loads a CSV or Excel file, returning basic info so the UI knows it's ready."""

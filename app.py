@@ -116,6 +116,26 @@ def chat_csv():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/api/recommendations', methods=['POST'])
+def recommendations():
+    data = request.json
+    if not data or 'filename' not in data:
+        return jsonify({"questions": []}), 200
+
+    filename = data['filename']
+    mode = data.get('mode', 'pdf')
+
+    try:
+        if mode == 'csv':
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+            if os.path.exists(filepath):
+                questions = csv_engine.get_csv_recommendations(filepath)
+                return jsonify({"questions": questions})
+        # For PDF and URL modes, return empty (no recommendations logic yet)
+        return jsonify({"questions": []})
+    except Exception:
+        return jsonify({"questions": []})
+
 # ─── URL SCRAPER ENDPOINTS ───────────────────────────────────────────────────
 
 # In-memory store for scraped page context (keyed by session token)

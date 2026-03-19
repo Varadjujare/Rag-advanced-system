@@ -12,7 +12,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""
-    return genai.GenerativeModel("gemini-1.5-flash")
+    return genai.GenerativeModel("gemini-2.0-flash")
 
 
 def scrape_url(url: str) -> dict:
