@@ -1,9 +1,5 @@
 import os
 from dotenv import load_dotenv
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_google_genai import ChatGoogleGenerativeAI
 from endee import Endee, Precision
 
 load_dotenv()
@@ -30,6 +26,7 @@ def get_embeddings_model():
     global _embeddings_model
     if _embeddings_model is None:
         print("Loading HuggingFace Embeddings (first time)...")
+        from langchain_huggingface import HuggingFaceEmbeddings
         _embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return _embeddings_model
 
@@ -37,6 +34,7 @@ def get_chat_model():
     global _chat_model
     if _chat_model is None:
         print("Loading Gemini Chat Model (first time)...")
+        from langchain_google_genai import ChatGoogleGenerativeAI
         _chat_model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=GEMINI_API_KEY,
@@ -47,6 +45,9 @@ def get_chat_model():
 def process_pdf(pdf_path: str):
     """Loads a PDF, splits into chunks, and upserts dense vectors to Endee."""
     print(f"Loading '{pdf_path}'...")
+    from langchain_community.document_loaders import PyPDFLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    
     loader = PyPDFLoader(pdf_path)
     docs = loader.load()
 

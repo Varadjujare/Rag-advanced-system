@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
 
@@ -14,6 +13,7 @@ def get_chat_model():
     global _chat_model
     if _chat_model is None:
         print("Loading Gemini Chat Model for CSV Engine (first time)...")
+        from langchain_google_genai import ChatGoogleGenerativeAI
         _chat_model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=GEMINI_API_KEY,
