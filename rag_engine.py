@@ -193,6 +193,9 @@ def process_pdf(pdf_path: str):
                     "file": os.path.basename(pdf_path)
                 }
             })
+            
+        # Mandatory brief sleep to stay well under the 15 RPM limit
+        time.sleep(2)
 
     print(f"Upserting {len(vectors)} vectors (dim={len(vectors[0]['vector'])})")
     try:
