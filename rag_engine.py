@@ -28,7 +28,7 @@ def get_embeddings_model():
         print("Loading Gemini Embeddings (first time)...")
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
         _embeddings_model = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
+            model="models/gemini-embedding-001",
             google_api_key=GEMINI_API_KEY
         )
     return _embeddings_model
