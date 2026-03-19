@@ -78,10 +78,10 @@ def _ensure_index():
         # Index already exists — that's fine
         pass
     except Exception as e:
-        # If the error mentions a dimension mismatch, delete and recreate
+        # If the error mentions a dimension mismatch or hybrid conflict, delete and recreate
         err_msg = str(e)
-        if "Expected shape" in err_msg or "384" in err_msg or "768" in err_msg:
-            print(f"Index dimension mismatch detected. Recreating index...")
+        if "Expected shape" in err_msg or "384" in err_msg or "768" in err_msg or "Hybrid index" in err_msg:
+            print(f"Index dimension/type mismatch detected. Recreating index...")
             try:
                 client.delete_index(name=COLLECTION)
             except Exception:
@@ -158,9 +158,9 @@ def process_pdf(pdf_path: str):
     except Exception as e:
         err_msg = str(e)
         print(f"Upsert failed: {err_msg}")
-        # Dimension mismatch — delete old index, recreate, retry
-        if "Expected shape" in err_msg:
-            print("Dimension mismatch during upsert. Recreating index...")
+        # Dimension/type mismatch — delete old index, recreate, retry
+        if "Expected shape" in err_msg or "Hybrid index" in err_msg:
+            print("Dimension/type mismatch during upsert. Recreating index...")
             try:
                 client.delete_index(name=COLLECTION)
             except Exception:
