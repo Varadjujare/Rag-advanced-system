@@ -1,9 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
-import rag_engine
-import csv_engine
-import url_engine
 import uuid
 
 app = Flask(__name__)
@@ -38,6 +35,7 @@ def upload_file():
         
         try:
             file.save(filepath)
+            import rag_engine
             chunks = rag_engine.process_pdf(filepath)
             
             # Safe to auto-delete since Endee has the vector data
@@ -72,6 +70,7 @@ def chat():
     filename = data['filename']
     
     try:
+        import rag_engine
         answer = rag_engine.query_pdf(user_query, filename)
         return jsonify({"answer": answer})
     except Exception as e:
@@ -92,6 +91,7 @@ def upload_csv():
         
         try:
             file.save(filepath)
+            import csv_engine
             stats = csv_engine.process_csv(filepath)
             return jsonify({
                 "message": "CSV uploaded and analyzed successfully", 
@@ -117,6 +117,7 @@ def chat_csv():
          return jsonify({"error": "File not found on server. Please re-upload."}), 404
     
     try:
+        import csv_engine
         answer = csv_engine.query_csv(user_query, filepath)
         return jsonify({"answer": answer})
     except Exception as e:
@@ -133,6 +134,7 @@ def recommendations():
 
     try:
         if mode == 'csv':
+            import csv_engine
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
             if os.path.exists(filepath):
                 questions = csv_engine.get_csv_recommendations(filepath)
@@ -158,6 +160,7 @@ def scrape_url():
         if not raw_url.startswith(('http://', 'https://')):
             raw_url = 'https://' + raw_url
 
+        import url_engine
         result = url_engine.scrape_url(raw_url)
         # Store scraped content in memory with the URL as key
         _url_sessions[raw_url] = result
@@ -187,6 +190,7 @@ def chat_url():
         return jsonify({"error": "Page session expired. Please re-submit the URL."}), 404
 
     try:
+        import url_engine
         answer = url_engine.query_url(
             user_query,
             session['text'],
