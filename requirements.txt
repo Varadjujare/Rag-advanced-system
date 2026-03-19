@@ -10,6 +10,3 @@ pypdf
 openpyxl
 tabulate
 gunicorn
-langchain-community
-langchain-google-genai
-langchain-text-splitters

@@ -1,6 +1,7 @@
 import os
 import time
 from dotenv import load_dotenv
+import google.generativeai as genai
 from endee import Endee, Precision
 
 load_dotenv()
@@ -11,9 +12,10 @@ ENDEE_TOKEN    = os.getenv("ENDEE_API_KEY")
 ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
-# Global cache for models
-_embeddings_model = None
-_chat_model = None
+MODEL_NAME = "gemini-2.5-flash-lite"
+EMBEDDING_MODEL = "models/gemini-embedding-001"
+
+genai.configure(api_key=GEMINI_API_KEY)
 
 # Monkey-patch VectorItem for Python 3.14 bug
 from endee.schema import VectorItem
@@ -23,41 +25,58 @@ if not hasattr(VectorItem, "get"):
 client = Endee(ENDEE_TOKEN)
 client.set_base_url(ENDEE_BASE_URL)
 
-def get_embeddings_model():
-    global _embeddings_model
-    if _embeddings_model is None:
-        print("Loading Gemini Embeddings (first time)...")
-        from langchain_google_genai import GoogleGenerativeAIEmbeddings
-        _embeddings_model = GoogleGenerativeAIEmbeddings(
-            model="models/gemini-embedding-001",
-            google_api_key=GEMINI_API_KEY
-        )
-    return _embeddings_model
-
 def get_chat_model():
-    global _chat_model
-    if _chat_model is None:
-        print("Loading Gemini Chat Model (first time)...")
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        _chat_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash-lite",
-            google_api_key=GEMINI_API_KEY,
-            temperature=0.3
-        )
-    return _chat_model
+    return genai.GenerativeModel(MODEL_NAME)
+
+def get_embedding(text: str):
+    """Gets a single embedding using the native google-generativeai SDK."""
+    result = genai.embed_content(
+        model=EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_document"
+    )
+    return result['embedding']
+
+def get_query_embedding(text: str):
+    """Gets a query embedding using the native google-generativeai SDK."""
+    result = genai.embed_content(
+        model=EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_query"
+    )
+    return result['embedding']
+
+
+def chunk_text(text: str, chunk_size=1000, overlap=200):
+    """Simple chunking function since we removed langchain."""
+    chunks = []
+    start = 0
+    text_len = len(text)
+    while start < text_len:
+        end = start + chunk_size
+        chunks.append(text[start:end])
+        start += (chunk_size - overlap)
+    return chunks
 
 def process_pdf(pdf_path: str):
     """Loads a PDF, splits into chunks, and upserts dense vectors to Endee."""
     print(f"Loading '{pdf_path}'...")
-    from langchain_community.document_loaders import PyPDFLoader
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    from pypdf import PdfReader
     
-    loader = PyPDFLoader(pdf_path)
-    docs = loader.load()
-
-    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = splitter.split_documents(docs)
-    print(f"Created {len(chunks)} chunks")
+    reader = PdfReader(pdf_path)
+    chunks_with_metadata = []
+    
+    for page_num, page in enumerate(reader.pages):
+        text = page.extract_text()
+        if text:
+            page_chunks = chunk_text(text, chunk_size=1000, overlap=200)
+            for chunk in page_chunks:
+                chunks_with_metadata.append({
+                    "text": chunk,
+                    "page": page_num + 1
+                })
+                
+    print(f"Created {len(chunks_with_metadata)} chunks")
 
     # Ensure index exists
     from endee.exceptions import ConflictException
@@ -69,30 +88,51 @@ def process_pdf(pdf_path: str):
 
     index = client.get_index(name=COLLECTION)
 
-    embeddings_model = get_embeddings_model()
     vectors = []
-    for i, chunk in enumerate(chunks):
-        embedding = embeddings_model.embed_query(chunk.page_content)
+    # Batch embeddings to avoid rate limits if possible, but genai library 
+    # handles them sequentially per call easily. Let's do it sequentially with backoff 
+    # if rate limit hits (since 2.5-flash-lite quota is very high).
+    for i, chunk_data in enumerate(chunks_with_metadata):
+        # Retry logic for embeddings
+        for attempt in range(3):
+            try:
+                embedding = get_embedding(chunk_data["text"])
+                break
+            except Exception as e:
+                if "429" in str(e) and attempt < 2:
+                    time.sleep(5)
+                else:
+                    raise
+
         vectors.append({
             "id": f"{os.path.basename(pdf_path)}_{i}",
             "vector": embedding,
             "meta": {
-                "text": chunk.page_content,
-                "page": str(chunk.metadata.get("page", "N/A")),
+                "text": chunk_data["text"],
+                "page": str(chunk_data["page"]),
                 "file": os.path.basename(pdf_path)
             }
         })
 
     index.upsert(vectors)
-    print(f"{len(chunks)} chunks stored in Endee Cloud!")
-    return len(chunks)
+    print(f"{len(chunks_with_metadata)} chunks stored in Endee Cloud!")
+    return len(chunks_with_metadata)
 
 def query_pdf(user_query: str, filename: str):
     """Queries the Endee DB and passes context to Gemini for an answer."""
     index = client.get_index(name=COLLECTION)
     
-    embeddings_model = get_embeddings_model()
-    query_vector = embeddings_model.embed_query(user_query)
+    # Get query embedding with retry
+    for attempt in range(3):
+        try:
+            query_vector = get_query_embedding(user_query)
+            break
+        except Exception as e:
+            if "429" in str(e) and attempt < 2:
+                time.sleep(5)
+            else:
+                raise
+
     results = index.query(vector=query_vector, top_k=3, filter={"file": filename})
 
     context = "\n\n".join(
@@ -114,8 +154,8 @@ Question:
     # Retry on 429 rate-limit
     for attempt in range(3):
         try:
-            response = chat_model.invoke(prompt)
-            return response.content
+            response = chat_model.generate_content(prompt)
+            return response.text
         except Exception as e:
             if "429" in str(e) and attempt < 2:
                 wait = (attempt + 1) * 15
