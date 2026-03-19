@@ -49,7 +49,7 @@ def upload_file():
         except Exception as e:
             if os.path.exists(filepath):
                 os.remove(filepath)
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": str(e)}), 400
     
     return jsonify({"error": "Invalid file format. Please upload a PDF."}), 400
 
@@ -65,7 +65,7 @@ def chat():
         answer = rag_engine.query_pdf(user_query)
         return jsonify({"answer": answer})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
 @app.route('/api/upload-csv', methods=['POST'])
 def upload_csv():
@@ -89,7 +89,7 @@ def upload_csv():
                 "filename": filename
             })
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            return jsonify({"error": str(e)}), 400
     
     return jsonify({"error": "Invalid file format. Please upload a .csv or .xlsx file."}), 400
 
@@ -110,7 +110,7 @@ def chat_csv():
         answer = csv_engine.query_csv(user_query, filepath)
         return jsonify({"answer": answer})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
 # ─── URL SCRAPER ENDPOINTS ───────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ def scrape_url():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
-        return jsonify({"error": f"Scraping failed: {str(e)}"}), 500
+        return jsonify({"error": f"Scraping failed: {str(e)}"}), 400
 
 
 @app.route('/api/chat-url', methods=['POST'])
@@ -165,7 +165,7 @@ def chat_url():
         )
         return jsonify({"answer": answer})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
 
 if __name__ == '__main__':
