@@ -2,7 +2,7 @@ Flask
 Werkzeug
 python-dotenv
 google-generativeai
-endee
+endee==0.1.17
 pandas
 beautifulsoup4
 requests

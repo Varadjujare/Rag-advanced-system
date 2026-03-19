@@ -147,9 +147,8 @@ def process_pdf(pdf_path: str):
                 "page": str(chunk_data["page"]),
                 "file": os.path.basename(pdf_path)
             },
-            "filter": {
-                "file": os.path.basename(pdf_path)
-            }
+            "sparse_indices": None,
+            "sparse_values": None
         })
 
     print(f"Upserting {len(vectors)} vectors (dim={len(vectors[0]['vector'])})")
