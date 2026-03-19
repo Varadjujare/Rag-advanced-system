@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 import rag_engine
 import csv_engine
 import url_engine
+import uuid
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
@@ -31,7 +32,8 @@ def upload_file():
         return jsonify({"error": "Empty filename"}), 400
         
     if file and file.filename.endswith('.pdf'):
-        filename = secure_filename(file.filename)
+        original_name = secure_filename(file.filename)
+        filename = f"{uuid.uuid4().hex}_{original_name}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
         
@@ -44,7 +46,8 @@ def upload_file():
                 
             return jsonify({
                 "message": "File uploaded and indexed successfully", 
-                "chunks_processed": chunks
+                "chunks_processed": chunks,
+                "filename": filename
             })
         except Exception as e:
             if os.path.exists(filepath):
@@ -56,13 +59,14 @@ def upload_file():
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
-    if not data or 'query' not in data:
-        return jsonify({"error": "No query provided"}), 400
-        
+    if not data or 'query' not in data or 'filename' not in data:
+        return jsonify({"error": "No query or filename provided"}), 400
+    
     user_query = data['query']
+    filename = data['filename']
     
     try:
-        answer = rag_engine.query_pdf(user_query)
+        answer = rag_engine.query_pdf(user_query, filename)
         return jsonify({"answer": answer})
     except Exception as e:
         return jsonify({"error": str(e)}), 400

@@ -243,9 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const endpoint = currentMode === 'pdf' ? '/api/chat'
                            : currentMode === 'csv' ? '/api/chat-csv'
                            : '/api/chat-url';
-            const body     = currentMode === 'pdf'
-                ? { query: text }
-                : { query: text, filename: currentFilename };
+            const body     = { query: text, filename: currentFilename };
 
             const res  = await fetch(endpoint, {
                 method: 'POST',

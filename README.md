@@ -75,3 +75,5 @@ Access the dashboard at **[http://localhost:5000](http://localhost:5000)**.
 
 ## 🌐 Live Application
 # [🚀 ACCESS SMARTDOC LIVE](https://smartdoc-bt9x.onrender.com/)
+
+##URL : https://smartdoc-bt9x.onrender.com/

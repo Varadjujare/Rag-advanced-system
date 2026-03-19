@@ -77,7 +77,8 @@ def process_pdf(pdf_path: str):
             "vector": embedding,
             "meta": {
                 "text": chunk.page_content,
-                "page": str(chunk.metadata.get("page", "N/A"))
+                "page": str(chunk.metadata.get("page", "N/A")),
+                "file": os.path.basename(pdf_path)
             }
         })
 
@@ -85,13 +86,13 @@ def process_pdf(pdf_path: str):
     print(f"{len(chunks)} chunks stored in Endee Cloud!")
     return len(chunks)
 
-def query_pdf(user_query: str):
+def query_pdf(user_query: str, filename: str):
     """Queries the Endee DB and passes context to Gemini for an answer."""
     index = client.get_index(name=COLLECTION)
     
     embeddings_model = get_embeddings_model()
     query_vector = embeddings_model.embed_query(user_query)
-    results = index.query(vector=query_vector, top_k=3)
+    results = index.query(vector=query_vector, top_k=3, filter={"file": filename})
 
     context = "\n\n".join(
         f"Page Content: {r['meta'].get('text', '')}\nPage Number: {r['meta'].get('page', 'N/A')}"
