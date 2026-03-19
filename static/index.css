@@ -1251,26 +1251,56 @@ button, input { font-family: inherit; border: none; outline: none; background: n
 
 
 /* ─── RESPONSIVE ─────────────────────────────────── */
+/* ─── RESPONSIVE ─────────────────────────────────── */
 @media (max-width: 900px) {
-    .footer-grid      { grid-template-columns: 1fr; gap: 2rem; }
-    .footer-col--brand{ border-right: none; padding-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 2rem; }
+    .home-layout      { grid-template-columns: 1fr; }
+    .home-left        { border-right: none; border-bottom: 1px solid var(--border); padding: 3rem 2rem; position: relative; }
+    .home-left::before{ width: 100%; height: 3px; top: 0; left: 0; }
+    .home-right       { padding: 2rem 1.5rem 5rem 1.5rem; }
+    
     .upload-split     { grid-template-columns: 1fr; overflow-y: auto; }
     .upload-info      { padding: 2.5rem 2rem; border-right: none; border-bottom: 1px solid var(--border); }
     .upload-info::before { width: 100%; height: 3px; }
+    
     .chat-history     { padding: 1.5rem; }
     .chat-input-area  { padding: 1rem 1.5rem; }
     .recommendations-container { padding: 0.75rem 1.5rem; }
+    
+    .footer-grid      { grid-template-columns: 1fr; gap: 2rem; }
+    .footer-col--brand{ border-right: none; padding-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 2rem; }
     .site-footer      { padding: 2.5rem 1.5rem 0 1.5rem; }
     .footer-bottom    { margin: 0 -1.5rem; }
     .footer-bottom-row { padding: 1rem 1.5rem; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 }
 
 @media (max-width: 600px) {
-    .home-title      { font-size: 2.5rem; }
-    .home-left       { padding: 2rem 1.5rem; }
-    .mode-card       { padding: 1.5rem; }
-    .chat-topbar     { padding: 0 1rem; }
-    .chat-history    { padding: 1rem; }
-    .chat-input-area { padding: 0.75rem 1rem; }
-    .footer-specs    { grid-template-columns: 1fr 1fr; }
+    .home-title       { font-size: 2.2rem; }
+    .home-desc        { font-size: 0.95rem; }
+    .home-left        { padding: 2.5rem 1.5rem; }
+    .mode-card        { padding: 1.25rem; }
+    
+    .upload-topbar    { flex-direction: column; align-items: flex-start; gap: 0.75rem; padding: 1rem 1.5rem; height: auto; }
+    .back-link        { padding: 0.45rem 0.75rem; font-size: 0.7rem; }
+    .upload-step-label{ margin-left: 0; font-size: 0.6rem; opacity: 0.7; }
+    
+    .chat-topbar      { padding: 0.75rem 1rem; height: auto; flex-wrap: wrap; gap: 0.75rem; }
+    .topbar-right     { display: none; }
+    .back-btn         { padding: 0.45rem 0.75rem; font-size: 0.7rem; }
+    
+    .chat-history     { padding: 1rem; }
+    .chat-input-area  { padding: 0.75rem 1rem; }
+    .footer-specs     { grid-template-columns: 1fr 1fr; }
+    
+    .url-input-box    { flex-direction: column; gap: 0.5rem; border: none; background: transparent; }
+    .url-prefix       { border-right: none; border-bottom: 1px solid var(--border); width: 100%; border-radius: 4px; padding: 0.8rem; background: var(--bg-2); }
+    #url-field        { border-radius: 4px; border: 1px solid var(--border); padding: 0.8rem; }
+    #scrape-btn       { width: 100%; border-radius: 4px !important; margin-top: 0.5rem; padding: 1rem; }
+
+    .theme-toggle     { bottom: 1.5rem; right: 1.5rem; width: 44px; height: 44px; z-index: 1000; }
+}
+
+@media (max-width: 400px) {
+    .home-title       { font-size: 1.8rem; }
+    .footer-specs     { grid-template-columns: 1fr; }
+    .fspec            { padding: 0.5rem; }
 }

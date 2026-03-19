@@ -3,11 +3,9 @@ Werkzeug
 python-dotenv
 langchain
 langchain-community
-langchain-huggingface
 langchain-google-genai
 langchain-text-splitters
 endee
-sentence-transformers
 pandas
 beautifulsoup4
 requests

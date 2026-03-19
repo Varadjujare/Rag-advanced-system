@@ -8,7 +8,7 @@ HF_TOKEN       = os.getenv("HUGGINGFACE_API_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ENDEE_TOKEN    = os.getenv("ENDEE_API_KEY")
 ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
-COLLECTION     = os.getenv("ENDEE_COLLECTION", "RAG_system")
+COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_Vault")
 
 # Global cache for models
 _embeddings_model = None
@@ -25,9 +25,12 @@ client.set_base_url(ENDEE_BASE_URL)
 def get_embeddings_model():
     global _embeddings_model
     if _embeddings_model is None:
-        print("Loading HuggingFace Embeddings (first time)...")
-        from langchain_huggingface import HuggingFaceEmbeddings
-        _embeddings_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        print("Loading Gemini Embeddings (first time)...")
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        _embeddings_model = GoogleGenerativeAIEmbeddings(
+            model="models/embedding-001",
+            google_api_key=GEMINI_API_KEY
+        )
     return _embeddings_model
 
 def get_chat_model():
@@ -58,7 +61,8 @@ def process_pdf(pdf_path: str):
     # Ensure index exists
     from endee.exceptions import ConflictException
     try:
-        client.create_index(name=COLLECTION, dimension=384, space_type="cosine", precision=Precision.INT8)
+        # Changed dimension to 768 for Gemini models/embedding-001
+        client.create_index(name=COLLECTION, dimension=768, space_type="cosine", precision=Precision.INT8)
     except ConflictException:
         pass # Already exists
 
