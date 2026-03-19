@@ -11,4 +11,5 @@ beautifulsoup4
 requests
 pypdf
 openpyxl
+tabulate
 gunicorn
