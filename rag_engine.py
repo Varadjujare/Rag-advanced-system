@@ -1,10 +1,8 @@
 import os
 import time
 from dotenv import load_dotenv
-
-# Deferred imports to bypass Render's 30-sec port scan timeout
-# import google.generativeai as genai
-# from endee import Endee, Precision
+import google.generativeai as genai
+from endee import Endee, Precision
 
 load_dotenv()
 
@@ -19,38 +17,21 @@ EMBEDDING_MODEL = "models/gemini-embedding-001"
 # gemini-embedding-001 produces 3072-dimensional vectors
 EMBEDDING_DIM = 3072
 
-_client = None
-def get_endee_client():
-    """Lazy-loads and returns the Endee Client."""
-    global _client
-    if _client is None:
-        from endee import Endee
-        # Monkey-patch VectorItem for Python 3.14 bug
-        from endee.schema import VectorItem
-        if not hasattr(VectorItem, "get"):
-            VectorItem.get = lambda self, key, default=None: getattr(self, key, default)
-            
-        _client = Endee(ENDEE_TOKEN)
-        _client.set_base_url(ENDEE_BASE_URL)
-    return _client
+genai.configure(api_key=GEMINI_API_KEY)
 
-_genai_configured = False
-def get_genai():
-    """Lazy-loads and returns configured google generativeai module."""
-    global _genai_configured
-    import google.generativeai as genai
-    if not _genai_configured:
-        genai.configure(api_key=GEMINI_API_KEY)
-        _genai_configured = True
-    return genai
+# Monkey-patch VectorItem for Python 3.14 bug
+from endee.schema import VectorItem
+if not hasattr(VectorItem, "get"):
+    VectorItem.get = lambda self, key, default=None: getattr(self, key, default)
+
+client = Endee(ENDEE_TOKEN)
+client.set_base_url(ENDEE_BASE_URL)
 
 def get_chat_model():
-    genai = get_genai()
     return genai.GenerativeModel(MODEL_NAME)
 
 def get_embedding(text: str):
     """Gets a single embedding using the native google-generativeai SDK."""
-    genai = get_genai()
     result = genai.embed_content(
         model=EMBEDDING_MODEL,
         content=text,
@@ -60,7 +41,6 @@ def get_embedding(text: str):
 
 def get_query_embedding(text: str):
     """Gets a query embedding using the native google-generativeai SDK."""
-    genai = get_genai()
     result = genai.embed_content(
         model=EMBEDDING_MODEL,
         content=text,
@@ -85,8 +65,6 @@ def _ensure_index():
     """Ensure the Endee index exists with the correct dimension (3072).
     If an old index with wrong dimension exists, delete and recreate it."""
     from endee.exceptions import ConflictException
-    from endee import Precision
-    client = get_endee_client()
 
     try:
         client.create_index(
@@ -108,7 +86,6 @@ def _ensure_index():
                 client.delete_index(name=COLLECTION)
             except Exception:
                 pass
-            from endee import Precision
             client.create_index(
                 name=COLLECTION,
                 dimension=EMBEDDING_DIM,
@@ -147,7 +124,6 @@ def process_pdf(pdf_path: str):
 
     # Ensure index exists with correct dimensions
     _ensure_index()
-    client = get_endee_client()
     index = client.get_index(name=COLLECTION)
 
     vectors = []
@@ -171,8 +147,9 @@ def process_pdf(pdf_path: str):
                 "page": str(chunk_data["page"]),
                 "file": os.path.basename(pdf_path)
             },
-            "sparse_indices": None,
-            "sparse_values": None
+            "filter": {
+                "file": os.path.basename(pdf_path)
+            }
         })
 
     print(f"Upserting {len(vectors)} vectors (dim={len(vectors[0]['vector'])})")
@@ -188,7 +165,6 @@ def process_pdf(pdf_path: str):
                 client.delete_index(name=COLLECTION)
             except Exception:
                 pass
-            from endee import Precision
             client.create_index(
                 name=COLLECTION,
                 dimension=EMBEDDING_DIM,
@@ -203,11 +179,11 @@ def process_pdf(pdf_path: str):
     print(f"{len(chunks_with_metadata)} chunks stored in Endee Cloud!")
     return len(chunks_with_metadata)
 
+
 def query_pdf(user_query: str, filename: str):
     """Queries the Endee DB and passes context to Gemini for an answer."""
-    client = get_endee_client()
     index = client.get_index(name=COLLECTION)
-    
+
     # Get query embedding with retry
     for attempt in range(3):
         try:
@@ -219,15 +195,29 @@ def query_pdf(user_query: str, filename: str):
             else:
                 raise
 
-    # Query without server-side filter (more compatible across Endee versions)
-    # Then filter by filename in Python
     all_results = index.query(vector=query_vector, top_k=10)
-    results = [r for r in all_results if r.get('meta', {}).get('file', '') == filename][:3]
 
-    context = "\n\n".join(
-        f"Page Content: {r['meta'].get('text', '')}\nPage Number: {r['meta'].get('page', 'N/A')}"
-        for r in results
-    )
+    # FIX: VectorItem doesn't support __getitem__ (bracket access),
+    # only .get() is monkey-patched. Use this helper everywhere.
+    def get_meta(r):
+        meta = r.get('meta', None)
+        if meta is None:
+            meta = getattr(r, 'meta', {})
+        return meta if isinstance(meta, dict) else {}
+
+    results = [r for r in all_results if get_meta(r).get('file', '') == filename][:3]
+
+    context_parts = []
+    for r in results:
+        meta = get_meta(r)
+        text = meta.get('text', '')
+        page = meta.get('page', 'N/A')
+        context_parts.append(f"Page Content: {text}\nPage Number: {page}")
+
+    context = "\n\n".join(context_parts)
+
+    if not context.strip():
+        return "No relevant content found in the document for your query. Please try rephrasing."
 
     prompt = f"""
 You are a helpful and detailed AI assistant answering questions about an uploaded PDF document.
