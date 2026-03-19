@@ -12,8 +12,8 @@ ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 MODEL_NAME = "gemini-1.5-flash"
-EMBEDDING_MODEL = "models/gemini-embedding-001"
-EMBEDDING_DIM = 3072
+EMBEDDING_MODEL = "models/text-embedding-004"
+EMBEDDING_DIM = 768
 
 import google.generativeai as genai
 
@@ -49,7 +49,8 @@ def get_embedding(text: str):
         content=text,
         task_type="retrieval_document"
     )
-    return result['embedding']
+    # Correctly extract the list of floats
+    return result['embedding']['values']
 
 def get_embeddings_batch(texts: list[str]):
     """Gets multiple embeddings in a single batch request to stay under quota."""
@@ -59,7 +60,8 @@ def get_embeddings_batch(texts: list[str]):
         content=texts,
         task_type="retrieval_document"
     )
-    return result['embedding']
+    # Extracts the list of floats for each item in the batch
+    return [e['values'] for e in result['embeddings']]
 
 def get_query_embedding(text: str):
     """Gets a query embedding using the native google-generativeai SDK."""
@@ -69,7 +71,7 @@ def get_query_embedding(text: str):
         content=text,
         task_type="retrieval_query"
     )
-    return result['embedding']
+    return result['embedding']['values']
 
 
 def chunk_text(text: str, chunk_size=1000, overlap=200):
