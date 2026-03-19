@@ -70,3 +70,8 @@ Access the dashboard at **[http://localhost:5000](http://localhost:5000)**.
 - **Scraping Limits**: Web text is automatically truncated at ~12,000 words to respect Gemini context limits.
 - **Data Previews**: Tabular data queries are limited to the first 500 rows to ensure efficient LLM interactions without exceeding context caps.
 - **Lazy Initialization**: AI models (Embeddings and Chat Models) inside engines are instantiated lazily on the first request to minimize server startup times.
+
+---
+
+## 🌐 Live Application
+# [🚀 ACCESS SMARTDOC LIVE](https://smartdoc-bt9x.onrender.com/)
