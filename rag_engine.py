@@ -2,6 +2,7 @@ import os
 import time
 from dotenv import load_dotenv
 
+os.environ["GOOGLE_API_CORE_SUPPRESS_PYTHON_VERSION_WARNING"] = "1"
 load_dotenv()
 
 HF_TOKEN       = os.getenv("HUGGINGFACE_API_TOKEN")
@@ -14,10 +15,11 @@ MODEL_NAME = "gemini-1.5-flash"
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIM = 3072
 
+import google.generativeai as genai
+
 _genai_configured = False
 def _get_genai():
     global _genai_configured
-    import google.generativeai as genai
     if not _genai_configured:
         genai.configure(api_key=GEMINI_API_KEY)
         _genai_configured = True

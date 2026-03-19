@@ -7,3 +7,5 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.10
+      - key: GOOGLE_API_CORE_SUPPRESS_PYTHON_VERSION_WARNING
+        value: "1"

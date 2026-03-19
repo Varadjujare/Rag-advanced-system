@@ -2,16 +2,20 @@ import os
 import sys
 import traceback
 import uuid
+from flask import Flask, render_template, request, jsonify
+from werkzeug.utils import secure_filename
+
+# CRITICAL: Suppress extremely slow version checks in google-api-core
+# This prevents Gunicorn worker timeouts during import.
+os.environ["GOOGLE_API_CORE_SUPPRESS_PYTHON_VERSION_WARNING"] = "1"
 
 # Immediate boot log for Render
 print("--- FLASK BOOTING ---", file=sys.stderr)
 
-try:
-    from flask import Flask, render_template, request, jsonify
-    from werkzeug.utils import secure_filename
-except ImportError as e:
-    print(f"FATAL IMPORT ERROR: {e}", file=sys.stderr)
-    raise
+# Preload engines to avoid timeout during first request
+import rag_engine
+import csv_engine
+import url_engine
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
