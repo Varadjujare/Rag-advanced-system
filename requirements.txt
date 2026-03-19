@@ -1,8 +1,8 @@
-Flask==2.3.3
-Werkzeug==2.3.7
+Flask
+Werkzeug
 python-dotenv
 google-generativeai
-endee==0.1.17
+endee
 pandas
 beautifulsoup4
 requests
