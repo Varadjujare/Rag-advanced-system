@@ -2,9 +2,23 @@ import os
 from flask import Flask, render_template, request, jsonify
 from werkzeug.utils import secure_filename
 import uuid
+import traceback
+import sys
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    
+    # Return full traceback in the response for debugging on Render
+    tb = traceback.format_exc()
+    print(f"CRITICAL SERVER ERROR: {tb}", file=sys.stderr)
+    return f"<h1>Internal Server Error</h1><pre>{tb}</pre>", 500
 
 @app.route('/health')
 def health():
