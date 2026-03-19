@@ -178,7 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const res  = await fetch(endpoint, { method: 'POST', body: formData });
-            const data = await res.json();
+            
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                throw new Error(`Server Error (${res.status}): ${text.slice(0, 100)}...`);
+            }
 
             if (res.ok) {
                 currentFilename = data.filename || file.name;
@@ -250,7 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
-            const data = await res.json();
+
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                throw new Error(`Server Error (${res.status}): ${text.slice(0, 100)}...`);
+            }
 
             removeElement(typingId);
             appendMessage('ai', res.ok ? data.answer : '⚠️ Error: ' + data.error);
