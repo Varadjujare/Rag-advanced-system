@@ -1,5 +1,6 @@
 import os
 import re
+import time
 import requests
 import google.generativeai as genai
 from bs4 import BeautifulSoup
@@ -10,9 +11,27 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
+# ── Model name (single source of truth) ──────────────────────────────────────
+MODEL_NAME = "gemini-2.5-flash-lite"
+
 def get_chat_model():
     """Returns a direct Gemini model instance."""
-    return genai.GenerativeModel("gemini-2.0-flash")
+    return genai.GenerativeModel(MODEL_NAME)
+
+def _generate_with_retry(model, prompt, max_retries=3):
+    """Calls model.generate_content with automatic retry on 429 rate-limit."""
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            return response
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15
+                print(f"[Rate-limit] Retrying in {wait}s (attempt {attempt+1}/{max_retries})…")
+                time.sleep(wait)
+            else:
+                raise
 
 
 def scrape_url(url: str) -> dict:
@@ -84,5 +103,5 @@ User Question: {user_query}
 Provide a clear, well-formatted answer using markdown where helpful (bullet points, bold, etc.)."""
 
     model = get_chat_model()
-    response = model.generate_content(prompt)
+    response = _generate_with_retry(model, prompt)
     return response.text

@@ -1,4 +1,5 @@
 import os
+import time
 import pandas as pd
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -8,9 +9,28 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
+# ── Model name (single source of truth) ──────────────────────────────────────
+MODEL_NAME = "gemini-2.5-flash-lite"
+
 def get_chat_model():
     """Returns a direct Gemini model instance."""
-    return genai.GenerativeModel("gemini-2.0-flash")
+    return genai.GenerativeModel(MODEL_NAME)
+
+def _generate_with_retry(model, prompt, max_retries=3):
+    """Calls model.generate_content with automatic retry on 429 rate-limit."""
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            return response
+        except Exception as e:
+            err_str = str(e)
+            # Retry only on 429 quota / rate-limit errors
+            if "429" in err_str and attempt < max_retries - 1:
+                wait = (attempt + 1) * 15          # 15s, 30s, 45s
+                print(f"[Rate-limit] Retrying in {wait}s (attempt {attempt+1}/{max_retries})…")
+                time.sleep(wait)
+            else:
+                raise
 
 def process_csv(filepath: str) -> dict:
     """Loads a CSV or Excel file, returning basic info so the UI knows it's ready."""
@@ -38,11 +58,6 @@ def query_csv(user_query: str, filepath: str) -> str:
         else:
             df = pd.read_excel(filepath)
             
-        # Convert the DataFrame to a Markdown table
-        # If the dataset is huge, we might want to sample it or use df.head(100) 
-        # But for standard files, Gemini flash handles huge contexts well.
-        # Let's limit to top 500 rows to be safe with typical token limits.
-        
         max_rows = 500
         truncated = False
         if len(df) > max_rows:
@@ -70,7 +85,7 @@ USER QUESTION:
 {user_query}
 """
         model = get_chat_model()
-        response = model.generate_content(prompt)
+        response = _generate_with_retry(model, prompt)
         return response.text
         
     except Exception as e:
@@ -99,7 +114,7 @@ Format: Return ONLY the questions as a JSON list of strings.
 """
         import json
         model = get_chat_model()
-        response = model.generate_content(prompt)
+        response = _generate_with_retry(model, prompt)
         text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except:

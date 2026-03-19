@@ -1,4 +1,5 @@
 import os
+import time
 from dotenv import load_dotenv
 from endee import Endee, Precision
 
@@ -39,7 +40,7 @@ def get_chat_model():
         print("Loading Gemini Chat Model (first time)...")
         from langchain_google_genai import ChatGoogleGenerativeAI
         _chat_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             google_api_key=GEMINI_API_KEY,
             temperature=0.3
         )
@@ -110,5 +111,15 @@ Question:
 {user_query}
 """
     chat_model = get_chat_model()
-    response = chat_model.invoke(prompt)
-    return response.content
+    # Retry on 429 rate-limit
+    for attempt in range(3):
+        try:
+            response = chat_model.invoke(prompt)
+            return response.content
+        except Exception as e:
+            if "429" in str(e) and attempt < 2:
+                wait = (attempt + 1) * 15
+                print(f"[Rate-limit] Retrying in {wait}s…")
+                time.sleep(wait)
+            else:
+                raise
