@@ -35,9 +35,9 @@ def upload_file():
         original_name = secure_filename(file.filename)
         filename = f"{uuid.uuid4().hex}_{original_name}"
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
         
         try:
+            file.save(filepath)
             chunks = rag_engine.process_pdf(filepath)
             
             # Safe to auto-delete since Endee has the vector data
@@ -89,9 +89,9 @@ def upload_csv():
     if file and (file.filename.endswith('.csv') or file.filename.endswith('.xlsx')):
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
         
         try:
+            file.save(filepath)
             stats = csv_engine.process_csv(filepath)
             return jsonify({
                 "message": "CSV uploaded and analyzed successfully", 
@@ -153,11 +153,11 @@ def scrape_url():
     if not data or 'url' not in data:
         return jsonify({"error": "No URL provided"}), 400
 
-    raw_url = data['url'].strip()
-    if not raw_url.startswith(('http://', 'https://')):
-        raw_url = 'https://' + raw_url
-
     try:
+        raw_url = data['url'].strip()
+        if not raw_url.startswith(('http://', 'https://')):
+            raw_url = 'https://' + raw_url
+
         result = url_engine.scrape_url(raw_url)
         # Store scraped content in memory with the URL as key
         _url_sessions[raw_url] = result
