@@ -5,20 +5,21 @@ import uuid
 import traceback
 import sys
 
+# Ensure local modules can be found on Render
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+# Register error handler as early as possible
 @app.errorhandler(Exception)
 def handle_exception(e):
-    # Pass through HTTP errors
     from werkzeug.exceptions import HTTPException
     if isinstance(e, HTTPException):
         return e
-    
-    # Return full traceback in the response for debugging on Render
     tb = traceback.format_exc()
     print(f"CRITICAL SERVER ERROR: {tb}", file=sys.stderr)
-    return f"<h1>Internal Server Error</h1><pre>{tb}</pre>", 500
+    return f"<h1>Internal Server Error (Diagnostic)</h1><pre>{tb}</pre>", 500
 
 @app.route('/health')
 def health():
@@ -27,7 +28,10 @@ def health():
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024 # 50MB max upload
 
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+try:
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+except Exception:
+    pass
 
 @app.route('/')
 def index():

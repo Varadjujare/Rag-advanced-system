@@ -1,5 +1,5 @@
-Flask
-Werkzeug
+Flask==2.3.3
+Werkzeug==2.3.7
 python-dotenv
 google-generativeai
 endee==0.1.17

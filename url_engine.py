@@ -18,7 +18,7 @@ def get_genai():
     return genai
 
 # ── Model name (single source of truth) ──────────────────────────────────────
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-1.5-flash"
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""

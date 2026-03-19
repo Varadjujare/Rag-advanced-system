@@ -10,7 +10,7 @@ ENDEE_TOKEN    = os.getenv("ENDEE_API_KEY")
 ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
-MODEL_NAME = "gemini-2.5-flash-lite"
+MODEL_NAME = "gemini-1.5-flash"
 EMBEDDING_MODEL = "models/gemini-embedding-001"
 EMBEDDING_DIM = 3072
 
