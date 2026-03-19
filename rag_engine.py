@@ -1,8 +1,10 @@
 import os
 import time
 from dotenv import load_dotenv
-import google.generativeai as genai
-from endee import Endee, Precision
+
+# Deferred imports to bypass Render's 30-sec port scan timeout
+# import google.generativeai as genai
+# from endee import Endee, Precision
 
 load_dotenv()
 
@@ -17,21 +19,38 @@ EMBEDDING_MODEL = "models/gemini-embedding-001"
 # gemini-embedding-001 produces 3072-dimensional vectors
 EMBEDDING_DIM = 3072
 
-genai.configure(api_key=GEMINI_API_KEY)
+_client = None
+def get_endee_client():
+    """Lazy-loads and returns the Endee Client."""
+    global _client
+    if _client is None:
+        from endee import Endee
+        # Monkey-patch VectorItem for Python 3.14 bug
+        from endee.schema import VectorItem
+        if not hasattr(VectorItem, "get"):
+            VectorItem.get = lambda self, key, default=None: getattr(self, key, default)
+            
+        _client = Endee(ENDEE_TOKEN)
+        _client.set_base_url(ENDEE_BASE_URL)
+    return _client
 
-# Monkey-patch VectorItem for Python 3.14 bug
-from endee.schema import VectorItem
-if not hasattr(VectorItem, "get"):
-    VectorItem.get = lambda self, key, default=None: getattr(self, key, default)
-
-client = Endee(ENDEE_TOKEN)
-client.set_base_url(ENDEE_BASE_URL)
+_genai_configured = False
+def get_genai():
+    """Lazy-loads and returns configured google generativeai module."""
+    global _genai_configured
+    import google.generativeai as genai
+    if not _genai_configured:
+        genai.configure(api_key=GEMINI_API_KEY)
+        _genai_configured = True
+    return genai
 
 def get_chat_model():
+    genai = get_genai()
     return genai.GenerativeModel(MODEL_NAME)
 
 def get_embedding(text: str):
     """Gets a single embedding using the native google-generativeai SDK."""
+    genai = get_genai()
     result = genai.embed_content(
         model=EMBEDDING_MODEL,
         content=text,
@@ -41,6 +60,7 @@ def get_embedding(text: str):
 
 def get_query_embedding(text: str):
     """Gets a query embedding using the native google-generativeai SDK."""
+    genai = get_genai()
     result = genai.embed_content(
         model=EMBEDDING_MODEL,
         content=text,
@@ -65,6 +85,8 @@ def _ensure_index():
     """Ensure the Endee index exists with the correct dimension (3072).
     If an old index with wrong dimension exists, delete and recreate it."""
     from endee.exceptions import ConflictException
+    from endee import Precision
+    client = get_endee_client()
 
     try:
         client.create_index(
@@ -86,6 +108,7 @@ def _ensure_index():
                 client.delete_index(name=COLLECTION)
             except Exception:
                 pass
+            from endee import Precision
             client.create_index(
                 name=COLLECTION,
                 dimension=EMBEDDING_DIM,
@@ -124,6 +147,7 @@ def process_pdf(pdf_path: str):
 
     # Ensure index exists with correct dimensions
     _ensure_index()
+    client = get_endee_client()
     index = client.get_index(name=COLLECTION)
 
     vectors = []
@@ -164,6 +188,7 @@ def process_pdf(pdf_path: str):
                 client.delete_index(name=COLLECTION)
             except Exception:
                 pass
+            from endee import Precision
             client.create_index(
                 name=COLLECTION,
                 dimension=EMBEDDING_DIM,
@@ -180,6 +205,7 @@ def process_pdf(pdf_path: str):
 
 def query_pdf(user_query: str, filename: str):
     """Queries the Endee DB and passes context to Gemini for an answer."""
+    client = get_endee_client()
     index = client.get_index(name=COLLECTION)
     
     # Get query embedding with retry

@@ -1,19 +1,23 @@
 import os
 import time
-import pandas as pd
-import google.generativeai as genai
 from dotenv import load_dotenv
+
+# Heavy imports deferred to function scope to bypass Render's 30s boot timeout
+# import pandas as pd
+# import google.generativeai as genai
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+# genai.configure(api_key=GEMINI_API_KEY) # This line will be moved into get_chat_model
 
 # ── Model name (single source of truth) ──────────────────────────────────────
 MODEL_NAME = "gemini-2.5-flash-lite"
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""
+    import google.generativeai as genai # Deferred import
+    genai.configure(api_key=GEMINI_API_KEY) # Configure here
     return genai.GenerativeModel(MODEL_NAME)
 
 def _generate_with_retry(model, prompt, max_retries=3):
@@ -34,6 +38,7 @@ def _generate_with_retry(model, prompt, max_retries=3):
 
 def process_csv(filepath: str) -> dict:
     """Loads a CSV or Excel file, returning basic info so the UI knows it's ready."""
+    import pandas as pd # Deferred import
     print(f"Loading '{filepath}'...")
     
     try:
@@ -52,6 +57,7 @@ def process_csv(filepath: str) -> dict:
 
 def query_csv(user_query: str, filepath: str) -> str:
     """Reads the dataset and passes it directly to Gemini along with the user's query."""
+    import pandas as pd # Deferred import
     try:
         if filepath.endswith('.csv'):
             df = pd.read_csv(filepath)
@@ -93,6 +99,7 @@ USER QUESTION:
 
 def get_csv_recommendations(filepath: str):
     """Generates analytical questions based on CSV columns and sample data."""
+    import pandas as pd # Deferred import
     try:
         if filepath.endswith('.csv'):
             df = pd.read_csv(filepath)

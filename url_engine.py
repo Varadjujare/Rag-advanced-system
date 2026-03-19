@@ -1,21 +1,28 @@
 import os
 import re
 import time
-import requests
-import google.generativeai as genai
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
+
+_genai_configured = False
+def get_genai():
+    """Lazy-loads and configures google.generativeai."""
+    global _genai_configured
+    import google.generativeai as genai
+    if not _genai_configured:
+        genai.configure(api_key=GEMINI_API_KEY)
+        _genai_configured = True
+    return genai
 
 # ── Model name (single source of truth) ──────────────────────────────────────
 MODEL_NAME = "gemini-2.5-flash-lite"
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""
+    genai = get_genai()
     return genai.GenerativeModel(MODEL_NAME)
 
 def _generate_with_retry(model, prompt, max_retries=3):
@@ -36,6 +43,9 @@ def _generate_with_retry(model, prompt, max_retries=3):
 
 def scrape_url(url: str) -> dict:
     """Fetches a public URL, strips HTML, and returns clean text + metadata."""
+    import requests
+    from bs4 import BeautifulSoup
+    
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
