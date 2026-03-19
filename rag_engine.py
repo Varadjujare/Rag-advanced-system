@@ -51,6 +51,16 @@ def get_embedding(text: str):
     )
     return result['embedding']
 
+def get_embeddings_batch(texts: list[str]):
+    """Gets multiple embeddings in a single batch request to stay under quota."""
+    genai = _get_genai()
+    result = genai.embed_content(
+        model=EMBEDDING_MODEL,
+        content=texts,
+        task_type="retrieval_document"
+    )
+    return result['embedding']
+
 def get_query_embedding(text: str):
     """Gets a query embedding using the native google-generativeai SDK."""
     genai = _get_genai()
@@ -143,30 +153,46 @@ def process_pdf(pdf_path: str):
     index = client.get_index(name=COLLECTION)
 
     vectors = []
-    for i, chunk_data in enumerate(chunks_with_metadata):
-        # Retry logic for embeddings
-        for attempt in range(3):
+    
+    # Process in batches of 50 to stay safely under Gemini and Endee limits
+    batch_size = 50
+    for i in range(0, len(chunks_with_metadata), batch_size):
+        batch = chunks_with_metadata[i : i + batch_size]
+        batch_texts = [c["text"] for c in batch]
+        
+        print(f"Requesting embeddings for batch {i//batch_size + 1}...")
+        
+        # Retry logic for the whole batch
+        batch_embeddings = None
+        for attempt in range(5):
             try:
-                embedding = get_embedding(chunk_data["text"])
+                batch_embeddings = get_embeddings_batch(batch_texts)
                 break
             except Exception as e:
-                if "429" in str(e) and attempt < 2:
-                    time.sleep(5)
+                err_msg = str(e)
+                if ("429" in err_msg or "quota" in err_msg.lower()) and attempt < 4:
+                    wait_time = (attempt + 1) * 20
+                    print(f"Quota exceeded. Sleeping {wait_time}s...")
+                    time.sleep(wait_time)
                 else:
                     raise
 
-        vectors.append({
-            "id": f"{os.path.basename(pdf_path)}_{i}",
-            "vector": embedding,
-            "meta": {
-                "text": chunk_data["text"],
-                "page": str(chunk_data["page"]),
-                "file": os.path.basename(pdf_path)
-            },
-            "filter": {
-                "file": os.path.basename(pdf_path)
-            }
-        })
+        # Map embeddings back to vector objects
+        for j, embedding in enumerate(batch_embeddings):
+            chunk_idx = i + j
+            chunk_data = chunks_with_metadata[chunk_idx]
+            vectors.append({
+                "id": f"{os.path.basename(pdf_path)}_{chunk_idx}",
+                "vector": embedding,
+                "meta": {
+                    "text": chunk_data["text"],
+                    "page": str(chunk_data["page"]),
+                    "file": os.path.basename(pdf_path)
+                },
+                "filter": {
+                    "file": os.path.basename(pdf_path)
+                }
+            })
 
     print(f"Upserting {len(vectors)} vectors (dim={len(vectors[0]['vector'])})")
     try:
