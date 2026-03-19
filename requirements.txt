@@ -10,3 +10,6 @@ pypdf
 openpyxl
 tabulate
 gunicorn
+typing-extensions==4.9.0
+pydantic==2.6.4
+pydantic-core==2.16.3
