@@ -1,25 +1,16 @@
 import os
 import pandas as pd
+import google.generativeai as genai
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-# Global cache for chat model
-_chat_model = None
+genai.configure(api_key=GEMINI_API_KEY)
 
 def get_chat_model():
-    global _chat_model
-    if _chat_model is None:
-        print("Loading Gemini Chat Model for CSV Engine (first time)...")
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        _chat_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=GEMINI_API_KEY,
-            temperature=0.3
-        )
-    return _chat_model
+    """Returns a direct Gemini model instance."""
+    return genai.GenerativeModel("gemini-1.5-flash")
 
 def process_csv(filepath: str) -> dict:
     """Loads a CSV or Excel file, returning basic info so the UI knows it's ready."""
@@ -78,9 +69,9 @@ DATASET:
 USER QUESTION:
 {user_query}
 """
-        chat_model = get_chat_model()
-        response = chat_model.invoke(prompt)
-        return response.content
+        model = get_chat_model()
+        response = model.generate_content(prompt)
+        return response.text
         
     except Exception as e:
         raise Exception(f"Failed to query CSV: {str(e)}")
@@ -107,9 +98,9 @@ Keep them concise and professional.
 Format: Return ONLY the questions as a JSON list of strings.
 """
         import json
-        chat_model = get_chat_model()
-        response = chat_model.invoke(prompt)
-        text = response.content.replace("```json", "").replace("```", "").strip()
+        model = get_chat_model()
+        response = model.generate_content(prompt)
+        text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except:
         return ["Show some basic statistics", "What are the top 5 rows?", "Give me a summary of results"]

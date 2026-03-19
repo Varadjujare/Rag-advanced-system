@@ -1,26 +1,18 @@
 import os
 import re
 import requests
+import google.generativeai as genai
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
-_chat_model = None
+genai.configure(api_key=GEMINI_API_KEY)
 
 def get_chat_model():
-    global _chat_model
-    if _chat_model is None:
-        print("Loading Gemini Chat Model for URL engine (first time)...")
-        from langchain_google_genai import ChatGoogleGenerativeAI
-        _chat_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=GEMINI_API_KEY,
-            temperature=0.3
-        )
-    return _chat_model
+    """Returns a direct Gemini model instance."""
+    return genai.GenerativeModel("gemini-1.5-flash")
 
 
 def scrape_url(url: str) -> dict:
@@ -91,6 +83,6 @@ User Question: {user_query}
 
 Provide a clear, well-formatted answer using markdown where helpful (bullet points, bold, etc.)."""
 
-    chat_model = get_chat_model()
-    response = chat_model.invoke(prompt)
-    return response.content
+    model = get_chat_model()
+    response = model.generate_content(prompt)
+    return response.text
