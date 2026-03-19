@@ -14,6 +14,8 @@ COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 MODEL_NAME = "gemini-2.5-flash-lite"
 EMBEDDING_MODEL = "models/gemini-embedding-001"
+# gemini-embedding-001 produces 3072-dimensional vectors
+EMBEDDING_DIM = 3072
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -58,6 +60,43 @@ def chunk_text(text: str, chunk_size=1000, overlap=200):
         start += (chunk_size - overlap)
     return chunks
 
+
+def _ensure_index():
+    """Ensure the Endee index exists with the correct dimension (3072).
+    If an old index with wrong dimension exists, delete and recreate it."""
+    from endee.exceptions import ConflictException
+
+    try:
+        client.create_index(
+            name=COLLECTION,
+            dimension=EMBEDDING_DIM,
+            space_type="cosine",
+            precision=Precision.INT8
+        )
+        print(f"Created new Endee index '{COLLECTION}' with dim={EMBEDDING_DIM}")
+    except ConflictException:
+        # Index already exists — that's fine
+        pass
+    except Exception as e:
+        # If the error mentions a dimension mismatch, delete and recreate
+        err_msg = str(e)
+        if "Expected shape" in err_msg or "384" in err_msg or "768" in err_msg:
+            print(f"Index dimension mismatch detected. Recreating index...")
+            try:
+                client.delete_index(name=COLLECTION)
+            except Exception:
+                pass
+            client.create_index(
+                name=COLLECTION,
+                dimension=EMBEDDING_DIM,
+                space_type="cosine",
+                precision=Precision.INT8
+            )
+            print(f"Recreated index '{COLLECTION}' with dim={EMBEDDING_DIM}")
+        else:
+            raise
+
+
 def process_pdf(pdf_path: str):
     """Loads a PDF, splits into chunks, and upserts dense vectors to Endee."""
     print(f"Loading '{pdf_path}'...")
@@ -68,43 +107,26 @@ def process_pdf(pdf_path: str):
     
     for page_num, page in enumerate(reader.pages):
         text = page.extract_text()
-        if text:
+        if text and text.strip():
             page_chunks = chunk_text(text, chunk_size=1000, overlap=200)
             for chunk in page_chunks:
-                chunks_with_metadata.append({
-                    "text": chunk,
-                    "page": page_num + 1
-                })
+                if chunk.strip():  # skip empty chunks
+                    chunks_with_metadata.append({
+                        "text": chunk,
+                        "page": page_num + 1
+                    })
                 
     print(f"Created {len(chunks_with_metadata)} chunks")
 
+    if not chunks_with_metadata:
+        print("No text extracted from PDF.")
+        return 0
+
     # Ensure index exists with correct dimensions
-    from endee.exceptions import ConflictException
-    try:
-        index_info = client.get_index(name=COLLECTION)
-        # Endee doesn't expose dimension directly on the object sometimes, 
-        # so we can just rely on the API. But the safest way is to try creating,
-        # and if it exists but is wrong during upsert, we handle it later.
-        # However, we can proactively delete it if we know we changed models.
-        # Let's check info:
-        if hasattr(index_info, 'dimension') and index_info.dimension == 384:
-             print("Old index format found. Deleting and recreating...")
-             client.delete_index(name=COLLECTION)
-             client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
-    except Exception:
-        pass # Index probably doesn't exist yet
-
-    try:
-        client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
-    except ConflictException:
-        pass # Already exists
-
+    _ensure_index()
     index = client.get_index(name=COLLECTION)
 
     vectors = []
-    # Batch embeddings to avoid rate limits if possible, but genai library 
-    # handles them sequentially per call easily. Let's do it sequentially with backoff 
-    # if rate limit hits (since 2.5-flash-lite quota is very high).
     for i, chunk_data in enumerate(chunks_with_metadata):
         # Retry logic for embeddings
         for attempt in range(3):
@@ -124,20 +146,35 @@ def process_pdf(pdf_path: str):
                 "text": chunk_data["text"],
                 "page": str(chunk_data["page"]),
                 "file": os.path.basename(pdf_path)
+            },
+            "filter": {
+                "file": os.path.basename(pdf_path)
             }
         })
 
+    print(f"Upserting {len(vectors)} vectors (dim={len(vectors[0]['vector'])})")
     try:
         index.upsert(vectors)
     except Exception as e:
-        if "Expected shape" in str(e) or "384" in str(e):
-             print("Dimension mismatch detected during upsert. Recreating index...")
-             client.delete_index(name=COLLECTION)
-             client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
-             index = client.get_index(name=COLLECTION)
-             index.upsert(vectors)
+        err_msg = str(e)
+        print(f"Upsert failed: {err_msg}")
+        # Dimension mismatch — delete old index, recreate, retry
+        if "Expected shape" in err_msg:
+            print("Dimension mismatch during upsert. Recreating index...")
+            try:
+                client.delete_index(name=COLLECTION)
+            except Exception:
+                pass
+            client.create_index(
+                name=COLLECTION,
+                dimension=EMBEDDING_DIM,
+                space_type="cosine",
+                precision=Precision.INT8
+            )
+            index = client.get_index(name=COLLECTION)
+            index.upsert(vectors)
         else:
-             raise
+            raise
              
     print(f"{len(chunks_with_metadata)} chunks stored in Endee Cloud!")
     return len(chunks_with_metadata)
@@ -157,7 +194,10 @@ def query_pdf(user_query: str, filename: str):
             else:
                 raise
 
-    results = index.query(vector=query_vector, top_k=3, filter={"file": filename})
+    # Query without server-side filter (more compatible across Endee versions)
+    # Then filter by filename in Python
+    all_results = index.query(vector=query_vector, top_k=10)
+    results = [r for r in all_results if r.get('meta', {}).get('file', '') == filename][:3]
 
     context = "\n\n".join(
         f"Page Content: {r['meta'].get('text', '')}\nPage Number: {r['meta'].get('page', 'N/A')}"

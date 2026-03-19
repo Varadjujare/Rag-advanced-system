@@ -1,0 +1,17 @@
+--- Testing PDF ---
+Upload PDF Status: 400
+Upload PDF Response: {"error":"Expected shape (N, 384), got (0,)"}
+
+
+--- Testing CSV ---
+Upload CSV Status: 200
+Upload CSV Response: {"filename":"test.csv","message":"CSV uploaded and analyzed successfully","stats":{"columns":3,"colu
+Recommendations CSV Status: 200
+Recommendations CSV Response: {"questions":["What is the average score for each age group?","Is there a correlation between Age an
+Chat CSV Status: 200
+Chat CSV Response: {"answer":"Based on the provided dataset, **Alice** is the oldest at **30 years old**."}
+
+
+--- Testing URL ---
+Scrape URL Status: 400
+Scrape URL Response: {"error":"Connection error: HTTPSConnectionPool(host='example.com', port=443): Max retries exceeded 

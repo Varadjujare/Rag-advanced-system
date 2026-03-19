@@ -1,0 +1,6 @@
+Status Code: 200
+Response: {"chunks_processed":1,"filename":"9af9a1dfa43142e2bb84e8ccea773069_dummy.pdf","message":"File uploaded and indexed successfully"}
+
+Chat Status: 400
+Chat: {"error":"1 validation error for QueryRequest\nfilter\n  Input should be a valid list [type=list_type, input_value={'file': '9af9a1dfa43142e...e8ccea773069_dummy.pdf'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/list_type"}
+

@@ -42,7 +42,10 @@ def upload_file():
             
             # Safe to auto-delete since Endee has the vector data
             if os.path.exists(filepath):
-                os.remove(filepath)
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
                 
             return jsonify({
                 "message": "File uploaded and indexed successfully", 
@@ -51,7 +54,10 @@ def upload_file():
             })
         except Exception as e:
             if os.path.exists(filepath):
-                os.remove(filepath)
+                try:
+                    os.remove(filepath)
+                except Exception:
+                    pass
             return jsonify({"error": str(e)}), 400
     
     return jsonify({"error": "Invalid file format. Please upload a PDF."}), 400
