@@ -12,8 +12,8 @@ ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 MODEL_NAME = "gemini-1.5-flash"
-EMBEDDING_MODEL = "models/text-embedding-004"
-EMBEDDING_DIM = 768
+EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+EMBEDDING_DIM = 384
 
 import google.generativeai as genai
 
@@ -42,36 +42,54 @@ def get_chat_model():
     return genai.GenerativeModel(MODEL_NAME)
 
 def get_embedding(text: str):
-    """Gets a single embedding using the native google-generativeai SDK."""
+    """Gets an embedding from Hugging Face Inference API with Gemini fallback."""
+    import requests
+    API_URL = f"https://api-inference.huggingface.co/models/{EMBEDDING_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    
+    # Simple retry logic for HF
+    for _ in range(3):
+        try:
+            response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=15)
+            if response.status_code == 200:
+                result = response.json()
+                if isinstance(result, list): return result
+            elif response.status_code == 503: # Model loading
+                time.sleep(10)
+                continue
+        except:
+            time.sleep(2)
+            
+    # Fallback to Gemini if HF fails (using the most stable name)
+    print("HF Embedding failed, falling back to Gemini...")
     genai = _get_genai()
-    result = genai.embed_content(
-        model=EMBEDDING_MODEL,
-        content=text,
-        task_type="retrieval_document"
-    )
-    # Correctly extract the list of floats
-    return result['embedding']['values']
+    res = genai.embed_content(model="models/embedding-001", content=text, task_type="retrieval_document")
+    return res['embedding']['values']
 
 def get_embeddings_batch(texts: list[str]):
-    """Gets multiple embeddings in a single batch request to stay under quota."""
-    genai = _get_genai()
-    result = genai.embed_content(
-        model=EMBEDDING_MODEL,
-        content=texts,
-        task_type="retrieval_document"
-    )
-    # Extracts the list of floats for each item in the batch
-    return [e['values'] for e in result['embeddings']]
+    """Gets batch embeddings from Hugging Face Inference API."""
+    import requests
+    API_URL = f"https://api-inference.huggingface.co/models/{EMBEDDING_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    
+    for _ in range(3):
+        try:
+            response = requests.post(API_URL, headers=headers, json={"inputs": texts}, timeout=30)
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 503:
+                time.sleep(15)
+                continue
+        except:
+            time.sleep(2)
+            
+    # Batch fallback via individual calls
+    print("HF Batch failed, falling back to individual calls...")
+    return [get_embedding(t) for t in texts]
 
 def get_query_embedding(text: str):
-    """Gets a query embedding using the native google-generativeai SDK."""
-    genai = _get_genai()
-    result = genai.embed_content(
-        model=EMBEDDING_MODEL,
-        content=text,
-        task_type="retrieval_query"
-    )
-    return result['embedding']['values']
+    """Query embedding (uses same logic as doc embedding for HF)."""
+    return get_embedding(text)
 
 
 def chunk_text(text: str, chunk_size=1000, overlap=200):
