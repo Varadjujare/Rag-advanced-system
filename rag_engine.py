@@ -8,7 +8,7 @@ HF_TOKEN       = os.getenv("HUGGINGFACE_API_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ENDEE_TOKEN    = os.getenv("ENDEE_API_KEY")
 ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
-COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_Vault")
+COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 # Global cache for models
 _embeddings_model = None
@@ -61,8 +61,8 @@ def process_pdf(pdf_path: str):
     # Ensure index exists
     from endee.exceptions import ConflictException
     try:
-        # Changed dimension to 768 for Gemini models/embedding-001
-        client.create_index(name=COLLECTION, dimension=768, space_type="cosine", precision=Precision.INT8)
+        # Changed dimension to 3072 to match Gemini output
+        client.create_index(name=COLLECTION, dimension=3072, space_type="cosine", precision=Precision.INT8)
     except ConflictException:
         pass # Already exists
 
