@@ -339,6 +339,10 @@ document.addEventListener('DOMContentLoaded', () => {
         chipsArea.innerHTML = '';
         container.classList.add('hidden');
 
+        if (mode !== 'csv') {
+            return;
+        }
+
         try {
             const res  = await fetch('/api/recommendations', {
                 method: 'POST',

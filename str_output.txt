@@ -1,8 +1,0 @@
-embedding-001 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-text-embedding-004 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-embedding-004 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-gemini-1.5-flash FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-models/embedding-001 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-models/text-embedding-004 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-models/embedding-004 FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND
-models/gemini-1.5-flash FAILED: Error embedding content (NOT_FOUND): 404 NOT_FOUND

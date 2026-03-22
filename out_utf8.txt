@@ -1,3 +1,0 @@
-Status Code: 400
-Response: {"error":"Forbidden: Precision 'int16' is not available for your tier. Allowed: int8"}
-
