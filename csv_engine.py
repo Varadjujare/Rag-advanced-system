@@ -12,7 +12,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # genai.configure(api_key=GEMINI_API_KEY) # This line will be moved into get_chat_model
 
 # ── Model name (single source of truth) ──────────────────────────────────────
-MODEL_NAME = "gemini-1.5-flash"
+MODEL_NAME = "gemini-2.5-flash"
 
 def get_chat_model():
     """Returns a direct Gemini model instance."""

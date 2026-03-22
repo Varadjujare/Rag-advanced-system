@@ -9,10 +9,11 @@ HF_TOKEN       = os.getenv("HUGGINGFACE_API_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 ENDEE_TOKEN    = os.getenv("ENDEE_API_KEY")
 ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
+
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
-MODEL_NAME = "gemini-1.5-flash"
-EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+MODEL_NAME = "gemini-2.5-flash"
+EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 EMBEDDING_DIM = 384
 
 import google.generativeai as genai
@@ -42,50 +43,63 @@ def get_chat_model():
     return genai.GenerativeModel(MODEL_NAME)
 
 def get_embedding(text: str):
-    """Gets an embedding from Hugging Face Inference API with Gemini fallback."""
+    """Gets an embedding from Hugging Face Inference API with extreme stability."""
     import requests
-    API_URL = f"https://api-inference.huggingface.co/models/{EMBEDDING_MODEL}"
+    import json
+    API_URL = f"https://router.huggingface.co/hf-inference/models/{EMBEDDING_MODEL}"
     headers = {"Authorization": f"Bearer {HF_TOKEN}"}
     
-    # Simple retry logic for HF
-    for _ in range(3):
+    last_error = "Unknown"
+    for attempt in range(5):
         try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=15)
+            # Wrap inputs correctly for Hugging Face Inference API
+            payload = {"inputs": text, "options": {"wait_for_model": True}}
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=20)
+            
             if response.status_code == 200:
                 result = response.json()
-                if isinstance(result, list): return result
-            elif response.status_code == 503: # Model loading
-                time.sleep(10)
-                continue
-        except:
-            time.sleep(2)
+                # Handle different HF response formats
+                if isinstance(result, list) and len(result) > 0:
+                    if isinstance(result[0], float): return result
+                    if isinstance(result[0], list): return result[0]
+                return result
             
-    # Fallback to Gemini if HF fails (using the most stable name)
-    print("HF Embedding failed, falling back to Gemini...")
-    genai = _get_genai()
-    res = genai.embed_content(model="models/embedding-001", content=text, task_type="retrieval_document")
-    return res['embedding']['values']
-
-def get_embeddings_batch(texts: list[str]):
-    """Gets batch embeddings from Hugging Face Inference API."""
-    import requests
-    API_URL = f"https://api-inference.huggingface.co/models/{EMBEDDING_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    
-    for _ in range(3):
-        try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": texts}, timeout=30)
-            if response.status_code == 200:
-                return response.json()
-            elif response.status_code == 503:
+            last_error = f"HTTP {response.status_code}: {response.text}"
+            if response.status_code == 503: # Loading
                 time.sleep(15)
                 continue
-        except:
+            time.sleep(2)
+        except Exception as e:
+            last_error = str(e)
             time.sleep(2)
             
+    raise Exception(f"Hugging Face Embedding failed: {last_error}")
+
+def get_embeddings_batch(texts: list[str]):
+    """Gets batch embeddings from Hugging Face Inference API with batching/retry."""
+    import requests
+    API_URL = f"https://router.huggingface.co/hf-inference/models/{EMBEDDING_MODEL}"
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    
+    payload = {"inputs": texts, "options": {"wait_for_model": True}}
+    for attempt in range(3):
+        try:
+            response = requests.post(API_URL, headers=headers, json=payload, timeout=45)
+            if response.status_code == 200:
+                result = response.json()
+                return result
+            if response.status_code == 503:
+                time.sleep(20)
+                continue
+        except:
+            time.sleep(5)
+            
     # Batch fallback via individual calls
-    print("HF Batch failed, falling back to individual calls...")
-    return [get_embedding(t) for t in texts]
+    print("[HF] Batch failed, falling back to individual calls...")
+    final_embeddings = []
+    for t in texts:
+        final_embeddings.append(get_embedding(t))
+    return final_embeddings
 
 def get_query_embedding(text: str):
     """Query embedding (uses same logic as doc embedding for HF)."""

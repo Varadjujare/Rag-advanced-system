@@ -116,8 +116,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 switchView(urlUploadView, chatView);
                 chatHistory.innerHTML = '';
-                appendMessage('ai', `Hello! I've read the page: **${data.title}** (${data.word_count.toLocaleString()} words). What would you like to know about it?`);
-                setTimeout(() => chatInput.focus(), 600);
+                const wordCount = data.word_count ? String(data.word_count) : "Unknown";
+
+                appendMessage(
+                    'ai',
+                    `Hello! I've read the page: **${data.title}** (${wordCount} words). What would you like to know about it?`
+                );                setTimeout(() => chatInput.focus(), 600);
             } else {
                 throw new Error(data.error || 'Scraping failed');
             }
