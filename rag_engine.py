@@ -13,8 +13,8 @@ ENDEE_BASE_URL = os.getenv("ENDEE_BASE_URL")
 COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 MODEL_NAME = "gemini-2.5-flash"
-EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-EMBEDDING_DIM = 384
+EMBEDDING_MODEL = "models/gemini-embedding-001"
+EMBEDDING_DIM = 3072
 
 import google.generativeai as genai
 
@@ -43,67 +43,68 @@ def get_chat_model():
     return genai.GenerativeModel(MODEL_NAME)
 
 def get_embedding(text: str):
-    """Gets an embedding from Hugging Face Inference API with extreme stability."""
-    import requests
-    import json
-    API_URL = f"https://router.huggingface.co/hf-inference/models/{EMBEDDING_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    
+    """Gets an embedding from Gemini API."""
+    genai = _get_genai()
+    import time
     last_error = "Unknown"
     for attempt in range(5):
         try:
-            # Wrap inputs correctly for Hugging Face Inference API
-            payload = {"inputs": text, "options": {"wait_for_model": True}}
-            response = requests.post(API_URL, headers=headers, json=payload, timeout=20)
-            
-            if response.status_code == 200:
-                result = response.json()
-                # Handle different HF response formats
-                if isinstance(result, list) and len(result) > 0:
-                    if isinstance(result[0], float): return result
-                    if isinstance(result[0], list): return result[0]
-                return result
-            
-            last_error = f"HTTP {response.status_code}: {response.text}"
-            if response.status_code == 503: # Loading
-                time.sleep(15)
-                continue
-            time.sleep(2)
+            result = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=text,
+                task_type="retrieval_document"
+            )
+            return result['embedding']
         except Exception as e:
             last_error = str(e)
-            time.sleep(2)
-            
-    raise Exception(f"Hugging Face Embedding failed: {last_error}")
+            if "429" in last_error or "quota" in last_error.lower():
+                time.sleep((attempt + 1) * 15)
+            else:
+                time.sleep(2)
+    raise Exception(f"Gemini Embedding failed: {last_error}")
 
 def get_embeddings_batch(texts: list[str]):
-    """Gets batch embeddings from Hugging Face Inference API with batching/retry."""
-    import requests
-    API_URL = f"https://router.huggingface.co/hf-inference/models/{EMBEDDING_MODEL}"
-    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-    
-    payload = {"inputs": texts, "options": {"wait_for_model": True}}
-    for attempt in range(3):
+    """Gets batch embeddings from Gemini API."""
+    genai = _get_genai()
+    import time
+    last_error = "Unknown"
+    for attempt in range(5):
         try:
-            response = requests.post(API_URL, headers=headers, json=payload, timeout=45)
-            if response.status_code == 200:
-                result = response.json()
-                return result
-            if response.status_code == 503:
-                time.sleep(20)
-                continue
-        except:
-            time.sleep(5)
-            
-    # Batch fallback via individual calls
-    print("[HF] Batch failed, falling back to individual calls...")
+            result = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=texts,
+                task_type="retrieval_document"
+            )
+            return result['embedding']
+        except Exception as e:
+            last_error = str(e)
+            if "429" in last_error or "quota" in last_error.lower():
+                time.sleep((attempt + 1) * 15)
+            else:
+                time.sleep(2)
+    print(f"[Gemini] Batch failed: {last_error}, falling back to individual calls...")
     final_embeddings = []
     for t in texts:
         final_embeddings.append(get_embedding(t))
     return final_embeddings
 
 def get_query_embedding(text: str):
-    """Query embedding (uses same logic as doc embedding for HF)."""
-    return get_embedding(text)
+    """Query embedding for Gemini."""
+    genai = _get_genai()
+    import time
+    for attempt in range(3):
+        try:
+            result = genai.embed_content(
+                model=EMBEDDING_MODEL,
+                content=text,
+                task_type="retrieval_query"
+            )
+            return result['embedding']
+        except Exception as e:
+            if "429" in str(e) and attempt < 2:
+                time.sleep(5)
+            else:
+                raise
 
 
 def chunk_text(text: str, chunk_size=1000, overlap=200):
