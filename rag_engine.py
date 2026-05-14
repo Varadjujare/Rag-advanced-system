@@ -14,7 +14,7 @@ COLLECTION     = os.getenv("ENDEE_COLLECTION", "SmartDOC_PROD_Vault")
 
 MODEL_NAME = "gemini-2.5-flash"
 EMBEDDING_MODEL = "models/gemini-embedding-001"
-EMBEDDING_DIM = 3072
+EMBEDDING_DIM = 768
 
 import google.generativeai as genai
 
@@ -52,7 +52,8 @@ def get_embedding(text: str):
             result = genai.embed_content(
                 model=EMBEDDING_MODEL,
                 content=text,
-                task_type="retrieval_document"
+                task_type="retrieval_document",
+                output_dimensionality=EMBEDDING_DIM
             )
             return result['embedding']
         except Exception as e:
@@ -73,7 +74,8 @@ def get_embeddings_batch(texts: list[str]):
             result = genai.embed_content(
                 model=EMBEDDING_MODEL,
                 content=texts,
-                task_type="retrieval_document"
+                task_type="retrieval_document",
+                output_dimensionality=EMBEDDING_DIM
             )
             return result['embedding']
         except Exception as e:
@@ -97,7 +99,8 @@ def get_query_embedding(text: str):
             result = genai.embed_content(
                 model=EMBEDDING_MODEL,
                 content=text,
-                task_type="retrieval_query"
+                task_type="retrieval_query",
+                output_dimensionality=EMBEDDING_DIM
             )
             return result['embedding']
         except Exception as e:
